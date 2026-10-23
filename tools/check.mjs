@@ -40,11 +40,15 @@ for (const f of FACTOR_DEFS) {
   assert(exp, "unexpected factor " + f.id);
   assert(JSON.stringify(f.items) === JSON.stringify(exp), f.id + " items " + f.items.join(","));
   assert(f.items.length === exp.length, f.id + " length");
-  for (const k of ["ok", "mild", "mod", "sev"]) {
-    assert(f.tips[k] && f.tips[k].length > 8, "tip " + f.id + " " + k);
-    assert(!/毫克|用药|处方|剂量/.test(f.tips[k]), "treatment language in " + f.id);
+  const levels = ["ok", "mild", "mod", "sev"];
+  for (const k of levels) {
+    assert(f.tips[k] && f.tips[k].length > 24, "tip " + f.id + " " + k);
+    assert(f.shows[k] && f.shows[k].length > 36, "shows " + f.id + " " + k);
+    assert(!/毫克|用药|处方|剂量|诊断为|患有/.test(f.tips[k] + f.shows[k]), "treatment language in " + f.id);
   }
-  assert(f.meaning && f.meaning.length > 8, "meaning " + f.id);
+  assert(new Set(levels.map((k) => f.shows[k])).size === 4, "shows not level-specific " + f.id);
+  assert(new Set(levels.map((k) => f.tips[k])).size === 4, "tips not level-specific " + f.id);
+  assert(f.meaning && f.meaning.length > 6 && f.meaning.length < 28, "one-line meaning " + f.id);
   for (const n of f.items) {
     assert(!seen.has(n), "duplicate item number " + n);
     seen.set(n, f.id);

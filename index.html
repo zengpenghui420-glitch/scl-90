@@ -242,23 +242,39 @@
   .intro { margin: -4px 0 12px; font-size: 13.5px; line-height: 1.65; color: #4c5a54; }
   .fcard {
     background: var(--card);
-    border-radius: 18px;
-    border: 1px solid #f3eee6;
-    border-left-width: 4px;
+    border-radius: 22px;
+    border: 1px solid #efe6d8;
     box-shadow: var(--shadow);
-    padding: 14px 14px 12px;
-    margin-bottom: 12px;
+    padding: 16px 16px 14px;
+    margin-bottom: 14px;
   }
-  .fcard-ok { border-left-color: #7dba9b; }
-  .fcard-mild { border-left-color: #e0c27a; }
-  .fcard-mod { border-left-color: #e0a36a; }
-  .fcard-sev { border-left-color: #e09a9a; }
-  .fhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .fhead h3 { margin: 0; font-size: 16px; }
-  .fmeta { margin: 6px 0 8px; font-size: 12.5px; color: var(--muted); }
-  .fmean, .ftip { margin: 0; font-size: 14px; line-height: 1.7; color: #31403a; }
-  .ftip { margin-top: 8px; }
-  .tip-tag { color: var(--teal-deep); font-weight: 700; margin-right: 6px; }
+  .fcard-top { display: flex; align-items: flex-start; gap: 8px; }
+  .fdot { width: 10px; height: 10px; border-radius: 50%; margin-top: 7px; flex: none; }
+  .fdot-ok { background: #3e9a6e; }
+  .fdot-mild { background: #c4a15a; }
+  .fdot-mod { background: #d08948; }
+  .fdot-sev { background: #d06a6a; }
+  .fcard-top h3 { margin: 0; font-size: 18px; font-weight: 700; }
+  .fsub { margin: 3px 0 0; font-size: 13px; line-height: 1.5; color: #8a8478; }
+  .fscore-row { display: flex; align-items: center; gap: 14px; margin: 14px 0 2px; }
+  .fscore { margin: 0; font-size: 42px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+  .fscore-label { margin: 3px 0 0; font-size: 12px; color: #8a938e; }
+  .fpanel {
+    background: #fbf8f2;
+    border: 1px solid #efe6d8;
+    border-radius: 16px;
+    padding: 12px 12px 11px;
+    margin-top: 12px;
+  }
+  .fpanel h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+  .fpanel p { margin: 0; font-size: 14px; line-height: 1.75; color: #31403a; }
+  .mark {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center; flex: none;
+    color: #f7fbfa; font-size: 13px; font-weight: 700;
+  }
+  .mark-te { background: #3e7ea6; }
+  .mark-jian { background: #3d8b6e; }
   .care {
     background: #f8f1ec;
     border: 1px solid #eadfd6;
@@ -538,114 +554,175 @@ const FACTOR_DEFS = [
   {
     id: "som", name: "躯体化", short: "躯体化",
     items: [1, 4, 12, 27, 40, 42, 48, 49, 52, 53, 56, 58],
-    meaning: "这一维看的是头痛、肠胃、胸闷、酸痛、发麻这类身体不舒服。有时它和压力、睡眠绑在一起，并不等于身体已经生病。",
+    meaning: "反映身体不舒服的主观感受",
+    shows: {
+      ok: "最近身体的信号比较安静。头痛、胃胀、胸闷这类不适不明显，日常活动没有被身体感受拖住。偶尔的酸痛多半来得快，也去得快。",
+      mild: "你会注意到一些身体不舒服，比如头沉、肩紧或胃里发闷，但还没有占满一整天。这些感觉常常在累了或绷着的时候更明显，休息之后会轻一些。",
+      mod: "身体不适已经比较常在。可能反复出现头痛、胸闷、肠胃不舒服或四肢发沉，做事时容易被这些感觉打断。你可能会担心是不是身体出了问题，同时又说不太清具体原因。",
+      sev: "身体的不舒服已经比较重，而且经常出现。头痛、胸闷、发麻或乏力可能让你很难集中精力，甚至影响出门、工作和睡觉。这种程度值得认真对待，而不只是再忍一忍。"
+    },
     tips: {
-      ok: "身体感受目前比较平稳。规律吃饭、活动一下、早点休息，就够用了。",
-      mild: "可以留意不适是不是跟着熬夜、久坐或紧张出现。试试固定睡觉时间，饭后走一走。",
-      mod: "把任务拆小一点，少熬夜，肩颈不舒服时起来活动。如果疼痛反复，也可以先做一次普通体检，看看有没有身体方面的原因。",
-      sev: "身体不适已经比较明显。先保证睡眠和饮食，不必硬扛。建议到正规医院检查身体，也可以一并看看压力和这些感觉的关系。"
+      ok: "保持现在的吃饭、走动和睡觉节奏就好。白天起来活动一下肩膀，晚上尽量按时休息。",
+      mild: "固定一个起床时间，饭后走十到十五分钟。久坐时每小时站起来伸展肩颈。睡前少看一会儿屏幕，看看不适是不是跟着熬夜出现。",
+      mod: "把今天的任务拆小，中间留出真正休息的空档。肩颈紧的时候把肩膀沉下去，慢慢吸气，再把气缓缓呼完，做几次就停。如果同一处疼痛反复出现，可以先做一次普通体检。",
+      sev: "先保证喝水、吃饭和睡觉，不必硬扛着继续满负荷。尽快到正规医院看看身体，也可以告诉医生你最近压力很大。身体和心情可以一起照顾。"
     }
   },
   {
     id: "oc", name: "强迫症状", short: "强迫",
     items: [3, 9, 10, 28, 38, 45, 46, 51, 55, 65],
-    meaning: "这一维看的是停不下来的念头、反复检查、做事特别慢或怕出错。很多时候人明知道没必要，却还是放不下。",
+    meaning: "反映反复念头、检查和怕出错",
+    shows: {
+      ok: "做事时你大体能停下来。检查、犹豫和脑子里打转的念头不多，完成一件事之后可以离开它。",
+      mild: "偶尔会多检查一遍，或者有个念头在脑子里多停一会儿。你知道它没什么必要，但还是会稍稍被它绊一下，不过大多时候还能把事情做完。",
+      mod: "反复检查、怕出错或脑子里转个不停，已经比较占时间。你可能做事变慢，决定一件小事也要来回想。明知道可以停，却不太放得下。",
+      sev: "这些念头或重复动作已经明显影响生活。很多时间花在检查、计数或在脑子里打转上，人会又累又烦，却很难靠硬忍把它关掉。"
+    },
     tips: {
-      ok: "这类纠缠目前不明显。保持现在的做事节奏就好。",
-      mild: "可以试一个小约定：检查一次就停，把担心写在纸上，而不是在脑子里转圈。",
-      mod: "允许事情足够好，而不是每次都完美。一次只完成一小步，做完就离开，不要立刻返工。",
-      sev: "如果这些念头或动作已经占掉很多时间，单靠硬忍会很累。建议找正规心理咨询或医疗机构，一起找更省力的相处办法。"
+      ok: "维持现在做完就放下的节奏。一件事有了结果，就允许自己转到下一件。",
+      mild: "给检查定一个小约定：看一遍就停，把担心写在纸上，而不是在脑子里再转一圈。写完就可以合上本子。",
+      mod: "每次只做完眼前这一小步，做完就离开现场，不要立刻返工。如果又想回去看，先等十分钟，常常那股劲会弱一点。",
+      sev: "单靠自己硬扛会很累。可以找信任的人说说这些念头占了多少时间，并考虑正规心理咨询，一起找更省力的相处办法。"
     }
   },
   {
     id: "is", name: "人际关系敏感", short: "人际",
     items: [6, 21, 34, 36, 37, 41, 61, 69, 73],
-    meaning: "这一维看的是和人相处时的不自在：在意评价、觉得不如别人、担心不被喜欢或不被理解。",
+    meaning: "反映在意评价和相处时的不自在",
+    shows: {
+      ok: "和人相处时你大体是自在的。在意评价的时候有，但不会长时间卡在别人是不是不喜欢自己上面。",
+      mild: "有时会在意别人的眼神、回复慢，或觉得自己不如旁边的人。这种不自在多半出现在特定场合，离开之后会慢慢淡下去。",
+      mod: "和人在一起时容易紧、容易想太多。你可能觉得自己不被理解，说话前反复斟酌，或者事后一直回放刚才那句话。相处开始变得比较费劲。",
+      sev: "见人或回消息本身就让你明显难受。你可能尽量躲开聚会，或者一直觉得别人在挑剔自己。这种紧绷已经影响到学习和工作里的往来。"
+    },
     tips: {
-      ok: "和人相处的紧张感目前不高。",
-      mild: "别人的沉默不一定是针对你。可以先找一位比较安心的人，说一件很小的事。",
-      mod: "把「我是不是做错了」先放一放，改问自己实际看到了什么。一次相处不必表现得很完美。",
-      sev: "如果见人或回消息已经让你明显痛苦，值得找信任的人说说，也可以考虑心理咨询。这是在意关系，不是你人不好。"
+      ok: "继续和让你安心的人保持平常联系，一次短聊就够。不必每次都表现得很周到。",
+      mild: "别人沉默时，先当成对方在忙，而不是针对你。可以找一位比较放心的人，说一件很小的事，练一练开口。",
+      mod: "每次相处只给自己一个小目标，比如待二十分钟或说两句话，完成就离开。事后把「我是不是做错了」换成「我实际看到了什么」。",
+      sev: "如果见人已经让你痛苦到想完全躲开，告诉一位信任的人，或考虑心理咨询。这是在意关系，不是你人不好。"
     }
   },
   {
     id: "dep", name: "抑郁", short: "抑郁",
     items: [5, 14, 15, 20, 22, 26, 29, 30, 31, 32, 54, 71, 79],
-    meaning: "这一维看的是劲头和兴趣：是否提不起精神、容易自责、觉得日子发灰，或对原来喜欢的事淡了。",
+    meaning: "反映情绪低落、兴趣下降和乏力",
+    shows: {
+      ok: "劲头和兴趣大体还在。你会累，但休息之后还能回到自己喜欢的事，日子没有整片发灰。",
+      mild: "有时提不起劲，对原来喜欢的事淡一点，或者容易责怪自己。这种低落多半一阵一阵的，还没有把整天都盖住。",
+      mod: "情绪低落和没意思的感觉比较经常。你可能觉得做事很费力，容易自责，开心的事也激不起多少兴趣。吃饭、睡觉或见人开始受影响。",
+      sev: "低落已经比较重，而且持续占据很多时间。你可能觉得什么都难、自己没什么价值，甚至不大想动。这种状态需要有人陪你一起看，而不是继续一个人扛。"
+    },
     tips: {
-      ok: "情绪底色目前比较稳。继续留一点让自己松下来的时间。",
-      mild: "选一件很小、做完就有感觉的事，比如晒十分钟太阳，或出门走一圈。不必等有劲了再动。",
-      mod: "低落的时候，人容易觉得什么都没意义。可以先告诉一位信任的人你最近有点撑着，并把今天要做的事减到一两件。",
-      sev: "这种状态若已经持续一段时间，并影响到吃饭、睡觉或日常事务，建议尽快到正规医院的心理科或精神科做评估。在预约之前，先让身边的人知道你不太好。"
+      ok: "给一天留一点真正松开的时间，散步、晒太阳，或做一件很小的喜欢的事。",
+      mild: "不必等有劲了再动。先做一件十分钟就能完成的事，比如出门走一圈，或把窗帘拉开晒一会儿太阳。",
+      mod: "今天只保留一两件必须做的事，其余先放下。告诉一位信任的人你最近有点撑着。白天尽量在有光的地方待一会儿。",
+      sev: "如果低落已经影响吃饭、睡觉或日常事务，请尽快到正规医院的心理科或精神科做一次评估。在这之前，先让身边的人知道你不太好。感到撑不住时，可拨打心理援助热线 12356。"
     }
   },
   {
     id: "anx", name: "焦虑", short: "焦虑",
     items: [2, 17, 23, 33, 39, 57, 72, 78, 80, 86],
-    meaning: "这一维看的是紧张、心慌、坐不住，以及突然冒出来的害怕。",
+    meaning: "反映焦虑情绪和身体紧绷",
+    shows: {
+      ok: "紧张和心慌不多。遇到事情时你会在意，但身体还能松下来，坐得住，也不会无缘无故突然害怕。",
+      mild: "你会感到一阵担心或心里不踏实，有时心跳快一点、肩膀发紧。这些感觉来得明确，忙完或过一会儿通常会退下去，还没有打乱整天的安排。",
+      mod: "经常感到焦虑和担忧，难以放松。可能出现明显的身体感觉，比如肌肉发紧、心慌、坐立不安，睡眠也会变浅。这些已经开始影响做事和休息。",
+      sev: "紧张几乎停不下来。心慌、害怕或坐不住可能频繁出现，甚至突然一阵惊恐，让你很难完成原来做得到的事。身体一直绷着，人会很累。"
+    },
     tips: {
-      ok: "焦虑水平目前不高。",
-      mild: "浓茶和咖啡可以少一点。紧张上来时，把脚踩实，慢慢把气呼出去。",
-      mod: "担心来的时候，写下你在怕什么，以及现在能做的最小一步。做完这一步就可以先停。",
-      sev: "如果心慌、害怕已经经常打断生活，建议寻求正规心理或医疗机构的帮助。在那之前，减少熬夜，会让身体好受一些。"
+      ok: "保持现有的作息。白天留几次站起来走动的空档，晚上少喝浓茶和咖啡。",
+      mild: "紧张上来时，把脚踩实，慢慢吸气，再把气缓缓呼出去，重复几次。把担心写成一句话，旁边写上现在能做的最小一步。",
+      mod: "每天留一段不被打断的十分钟，只做缓慢呼吸或出门走一圈，中途不去看消息。少一点咖啡因，固定睡觉时间。一件担心的事，只处理眼前这一步，做完就停。",
+      sev: "如果心慌和害怕已经经常打断生活，建议尽快寻求正规心理或医疗机构的帮助。在那之前减少熬夜，并告诉一位信任的人你最近很难放松。感到撑不住时可拨打 12356。"
     }
   },
   {
     id: "hos", name: "敌对", short: "敌对",
     items: [11, 24, 63, 67, 74, 81],
-    meaning: "这一维看的是烦躁、容易争辩、想发火，或有摔东西的冲动。它描述的是火气，不是你的人品。",
+    meaning: "反映烦躁、发火和冲动",
+    shows: {
+      ok: "火气不大。意见不同时你还能听完，不太会突然想摔东西或吵起来。小的不愉快过了就过了，不会在心里留很久。",
+      mild: "容易烦、容易顶一句，但多数时候还能停住。生气来得快，离开那个场面之后会慢慢下去。",
+      mod: "烦躁和想争辩比较明显。你可能经常觉得别人惹到你，说话变冲，或者有想摔东西的冲动。事后有时会后悔，当时却不太收得住。",
+      sev: "火气已经比较大，而且经常冒出来。你可能担心自己会说出很重的话，或做出伤到别人、自己或物品的事。这时需要先离开现场，而不是继续硬撑在冲突里。"
+    },
     tips: {
-      ok: "火气目前不大。意见不合时，先听完再决定要不要回应，通常就够了。",
-      mild: "生气时先离开几分钟，走一走，再决定要不要说。",
-      mod: "开口时尽量说「我感到……」，而不是先指责对方。说重了如果后悔，可以之后再补一句。",
-      sev: "如果发火时担心自己会伤到别人或自己，请先离开现场，联系信任的人，或拨打心理援助热线 12356。不必等事情变大。"
+      ok: "意见不合时先听完再回应，这个节奏可以继续留着。走一走也能把小火气散掉。",
+      mild: "生气时先离开几分钟，走一走或喝口水，再决定要不要说。开口时试着先说「我感到……」。",
+      mod: "想争的时候，把要说的话先记在手机里，过半小时再看要不要发出去。冲突当下离开房间，等肩膀松一点再回去。",
+      sev: "如果发火时担心会伤到别人或自己，请立刻离开现场，联系信任的人，或拨打心理援助热线 12356。不必等事情变大。"
     }
   },
   {
     id: "phob", name: "恐怖", short: "恐怖",
     items: [13, 25, 47, 50, 70, 75, 82],
-    meaning: "这一维看的是对某些场合的害怕，比如空旷的地方、人群、交通工具或单独出门，以及因为害怕而躲开。",
+    meaning: "反映对场合和独自出门的害怕",
+    shows: {
+      ok: "对空旷的地方、人群、坐车或单独出门，你没有明显的害怕，也不需要特意躲开。这些场合可以照常去。",
+      mild: "某些场合会让你有点紧，比如人多或要独自走一段路。你还能去，只是心里会先准备一下，离开之后就松了。",
+      mod: "害怕已经让你开始躲开一些场合。坐车、进商场或单独出门前会犹豫很久，有时宁可变计划。躲开之后短期轻松，下次却更不想去。",
+      sev: "害怕已经明显限制生活。出门、上学、上班或待在某些地方变得很难，人会提前很久就紧张。这个程度适合有人陪着，并寻求更稳妥的帮助。"
+    },
     tips: {
-      ok: "这方面的害怕目前不明显。",
-      mild: "如果只是轻微，可以在有人陪同时，稍微靠近一点点你在意的场合。",
-      mod: "不必一次面对最怕的场景。选一个小到你觉得勉强可以的步骤，做完就收。",
-      sev: "如果害怕已经让你很难出门、上学或上班，建议寻求正规心理咨询。可以有人陪同，一步一步来。"
+      ok: "按原来的出行节奏就好，不必特意去挑战什么。和人一起走动也完全可以。",
+      mild: "挑一个只让你稍微在意的场合，有人陪同时靠近一点点，待几分钟就离开。回来后记得自己做到了。",
+      mod: "不必一次面对最怕的场景。选一个小到勉强可以的步骤，比如走到楼下或坐一站车，做完就收。可以请信任的人陪同。",
+      sev: "如果害怕已经让你很难出门、上学或上班，建议寻求正规心理咨询。请信任的人陪同，一步一步来，不必责备自己。"
     }
   },
   {
     id: "par", name: "偏执", short: "偏执",
     items: [8, 18, 43, 68, 76, 83],
-    meaning: "这一维看的是猜疑和被针对的感觉：觉得别人不可信、在议论自己，或想占自己便宜。",
+    meaning: "反映猜疑和觉得被针对",
+    shows: {
+      ok: "你大体还信得过身边的人。偶尔会多想一句，但不会长时间觉得别人在针对自己。猜疑来了，也还能放得下。",
+      mild: "有时会猜别人是不是在议论你，或不太放心别人的好意。核对一下事实之后，通常还能把那股猜疑放下。",
+      mod: "被针对、被占便宜的感觉比较常出现。你可能很快把别人的话理解成恶意，想马上回应，事后又觉得也许不是那样。和人的距离在变远。",
+      sev: "这种猜疑比较强烈，而且持续。你可能很难相信解释，觉得议论或不公平一直在发生，和周围人越来越难相处。分数高说明你现在很不好受，并不能说明你得了某种病。"
+    },
     tips: {
-      ok: "对他人的防备目前不高。",
-      mild: "先找一个不那么糟的解释，再决定要不要回应。也可以和信任的人核对你看到的事实。",
-      mod: "感觉很真的时候，人容易马上回应。可以先把想说的话记下来，过几个小时再看要不要发出去。",
-      sev: "如果这种感觉很强烈、持续，并且让你和周围人越来越远，建议到正规精神心理机构做一次评估。分数高不等于有病，只说明你现在很不好受。"
+      ok: "和信任的人保持平常交流。有疑问时直接问一句，往往比自己猜更省力。",
+      mild: "先找一个不那么糟的解释，再决定要不要回应。也可以把你看到的事实讲给一位信任的人听。",
+      mod: "想立刻回复时，先把话记下来，过几个小时再看。只根据你亲眼看到的事做决定，把猜测单独标出来。",
+      sev: "如果这种感觉让你和周围人越来越远，建议到正规精神心理机构做一次评估，可以请一位你信得过的人陪同。这是在照顾自己。"
     }
   },
   {
     id: "psy", name: "精神病性", short: "精神病性",
     items: [7, 16, 35, 62, 77, 84, 85, 87, 88, 90],
-    meaning: "这一维涉及一些不寻常的体验，例如觉得想法不太像自己的、听到别人听不见的声音，或和人很难亲近。它只反映困扰的程度，不能用来判断有没有精神疾病。",
+    meaning: "反映不寻常体验带来的困扰",
+    shows: {
+      ok: "不寻常的体验目前不明显。你大体觉得想法是自己的，和人在一起时也没有持续的疏离感。",
+      mild: "偶尔会有短暂的陌生感，比如觉得某个念头不太像平时的自己，或和人有一点远。这常常和没睡好、压力大连在一起，过一阵会减轻。",
+      mod: "这类体验更常出现，并让你不安。你可能觉得有些想法不太受自己控制，或和别人很难亲近。它反映的是困扰程度，不能用来判断有没有精神疾病。",
+      sev: "这些体验比较频繁，或者你开始分不清它是不是真的发生了，比如听到别人听不见的声音，或觉得想法被人影响。这种时候宜尽快让专业的人一起看，而不是独自害怕。"
+    },
     tips: {
-      ok: "这类体验目前不明显。",
-      mild: "偶尔的陌生感有时和睡眠不足、压力大有关。先把觉睡够，再观察会不会减轻。",
-      mod: "如果这些体验让你不安，可以告诉一位你信任、并且不会取笑你的人，一起决定要不要去医院看看。",
-      sev: "若这类体验比较频繁，或你开始分不清它是不是真实发生的，请尽快到正规医院的精神心理科就诊。早点问一问，是在照顾自己。"
+      ok: "保持睡眠。如果只是很偶尔、很轻的陌生感，先观察就好，不必给自己下结论。",
+      mild: "先把觉睡够，连续几天固定起床时间，再看那种陌生感会不会轻一些。也可以告诉一位不会取笑你的人。",
+      mod: "把体验发生的时间记两行：当时在做什么、前一晚睡了多久。拿着记录，和信任的人一起决定要不要去医院看看。",
+      sev: "请尽快到正规医院的精神心理科就诊，可以请家人或朋友陪同。早点问一问，是在照顾自己，不是给自己贴标签。"
     }
   },
   {
     id: "add", name: "其他（睡眠饮食）", short: "睡眠饮食",
     items: [19, 44, 59, 60, 64, 66, 89],
-    meaning: "这一维主要看睡眠和饮食：难入睡、早醒、睡得浅，或者胃口变差、吃得很多。也包括少数没有归进上面九类的感受。",
+    meaning: "反映睡眠和饮食是否被打乱",
+    shows: {
+      ok: "睡眠和胃口大体稳定。你能睡着，醒来的时间也还规律，吃饭没有明显过多或过少。",
+      mild: "偶尔难入睡、醒得早，或胃口差一点、有时吃得偏多。这些变化还没有天天发生，对白天精神的影响有限。",
+      mod: "睡眠或饮食已经被打乱得比较明显。可能躺下很久睡不着、夜里醒，白天没胃口，或反过来吃得很多。人会更累，情绪也更容易跟着波动。",
+      sev: "睡不好或吃不下已经持续影响白天。你可能几乎休息不好，或者胃口明显紊乱，身体和心情一起往下掉。这个程度需要尽早照顾，而不是再拖。"
+    },
     tips: {
-      ok: "睡眠和饮食目前比较稳。",
-      mild: "尽量固定起床时间。睡前少看一会儿屏幕，晚饭不要过饱。",
-      mod: "胃口和睡眠一起乱，常常是压力的信号。白天少补很长的觉，晚上的床尽量只用来睡觉。",
-      sev: "如果长期睡不好或几乎吃不下，身体会更累。建议到正规医疗机构，从身体和心理两方面一起看看。"
+      ok: "保持比较固定的起床时间。晚饭不要过饱，睡前少看一会儿屏幕。",
+      mild: "每天尽量同一时间起床，即使前一晚睡得晚。睡前一小时把屏幕放远一点，晚饭吃到七分饱。白天出门走十五分钟。",
+      mod: "床尽量只用来睡觉。躺下约二十分钟还很清醒，就起来坐一会儿再回去，避免在床上刷消息。白天少补很长的觉。",
+      sev: "如果长期几乎睡不着或吃不下，建议到正规医疗机构，从身体和心理两方面一起看看。白天先保证喝水，并吃一点简单的食物。"
     }
   }
 ];
+
 
 function shownMean(mean) {
   return Number(mean.toFixed(2));
@@ -998,7 +1075,7 @@ function formatWhen(iso) {
   return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
 }
 function radarSVG(factors) {
-  const cx = 180, cy = 188, R = 96, n = factors.length;
+  const cx = 200, cy = 232, R = 102, n = factors.length;
   const pt = (i, v) => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
     const rr = Math.max(0, Math.min(5, v)) / 5 * R;
@@ -1006,31 +1083,44 @@ function radarSVG(factors) {
   };
   let rings = "";
   let axes = "";
+  let scaleNums = "";
+  const wedge = -Math.PI / 2 + Math.PI / n;
   for (let k = 1; k <= 5; k++) {
     const pts = [];
     for (let i = 0; i < n; i++) pts.push(pt(i, k).map((x) => x.toFixed(1)).join(","));
-    const strong = k === 2;
-    rings += '<polygon points="' + pts.join(" ") + '" fill="none" stroke="' + (strong ? "#b7cfc6" : "#e3eee9") + '" stroke-width="' + (strong ? "1.4" : "1") + '"/>';
+    const strong = k === 2 || k === 5;
+    rings += '<polygon points="' + pts.join(" ") + '" fill="' + (k === 5 ? "rgba(62,122,116,0.04)" : "none") + '" stroke="' + (strong ? "#9fc4ba" : "#d7e6e1") + '" stroke-width="' + (strong ? "1.6" : "1") + '"/>';
+    const sx = cx + (k / 5) * R * Math.cos(wedge);
+    const sy = cy + (k / 5) * R * Math.sin(wedge);
+    scaleNums += '<text x="' + sx.toFixed(1) + '" y="' + sy.toFixed(1) + '" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="#7e9a93">' + k + "</text>";
   }
   for (let i = 0; i < n; i++) {
     const p = pt(i, 5);
-    axes += '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '" stroke="#e7f1ee" stroke-width="1"/>';
+    axes += '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '" stroke="#d5e7e2" stroke-width="1"/>';
   }
   const poly = factors.map((f, i) => pt(i, f.mean).map((x) => x.toFixed(1)).join(",")).join(" ");
   const dots = factors.map((f, i) => {
     const p = pt(i, f.mean);
-    return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.2" fill="#3e7a74"/>';
+    return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="4" fill="#fff" stroke="#2f6f6a" stroke-width="2"/>';
   }).join("");
   let labels = "";
   factors.forEach((f, i) => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-    const lr = R + 30;
+    const lr = R + 46;
     const x = cx + lr * Math.cos(a);
     const y = cy + lr * Math.sin(a);
-    const anchor = Math.abs(Math.cos(a)) < 0.25 ? "middle" : (Math.cos(a) > 0 ? "start" : "end");
-    labels += '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + anchor + '" dominant-baseline="middle" font-size="11" fill="#4e5c55">' + esc(f.short) + "</text>";
+    const anchor = Math.abs(Math.cos(a)) < 0.28 ? "middle" : (Math.cos(a) > 0 ? "start" : "end");
+    const score = f.mean.toFixed(2);
+    const halo = ' stroke="#fffcf7" stroke-width="4" paint-order="stroke"';
+    labels += '<text x="' + x.toFixed(1) + '" y="' + (y - 8).toFixed(1) + '" text-anchor="' + anchor + '" font-size="12" fill="#31403a"' + halo + ">" + esc(f.short) + "</text>";
+    labels += '<text x="' + x.toFixed(1) + '" y="' + (y + 8).toFixed(1) + '" text-anchor="' + anchor + '" font-size="12" font-weight="700" fill="#2c5e59"' + halo + ">" + score + "</text>";
   });
-  return '<svg viewBox="0 0 360 380" role="img" aria-label="十个因子均分雷达图" style="font-family:PingFang SC,Hiragino Sans GB,Noto Sans SC,Noto Sans CJK SC,Microsoft YaHei,WenQuanYi Micro Hei,sans-serif">' + rings + axes + '<polygon points="' + poly + '" fill="rgba(62,122,116,0.28)" stroke="#3e7a74" stroke-width="2"/>' + dots + labels + "</svg>";
+  const aria = factors.map((f) => f.short + " " + f.mean.toFixed(2)).join("，");
+  return '<svg viewBox="0 0 400 470" role="img" aria-label="十个因子均分雷达图，刻度 0 到 5。' + esc(aria) + '" style="font-family:PingFang SC,Hiragino Sans GB,Noto Sans SC,Noto Sans CJK SC,Microsoft YaHei,WenQuanYi Micro Hei,sans-serif">' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="2.5" fill="#9fc4ba"/>' +
+    rings + axes +
+    '<polygon points="' + poly + '" fill="rgba(62,122,116,0.38)" stroke="#2f6f6a" stroke-width="2.5" stroke-linejoin="round"/>' +
+    dots + scaleNums + labels + "</svg>";
 }
 function summaryText(r) {
   const lines = [
@@ -1158,29 +1248,40 @@ function paint(r) {
   root.appendChild(tableCard);
 
   const radar = el("section", "card");
+  radar.id = "radarCard";
   radar.appendChild(el("h2", "sec-title", "因子雷达图"));
   const box = el("div", "radar-box");
   box.innerHTML = radarSVG(r.factors);
   radar.appendChild(box);
-  radar.appendChild(el("p", "radar-note", "从中心向外是 0 到 5 分，稍深的一圈大约是均分 2。图形越靠外，这一维越明显。每题最低是 1 分，所以图形不会缩到中心。"));
+  radar.appendChild(el("p", "radar-note", "刻度是 0 到 5，外圈为 5。每个名字下面的数字是该因子均分，和表里的均分相同。图形越靠外，这一维越明显。"));
   root.appendChild(radar);
 
   const block = el("section");
   block.appendChild(el("h2", "sec-title", "分项说明"));
-  block.appendChild(el("p", "intro", "下面是每个维度在说什么，以及可以自己试试的小调整。这些只是日常照顾，不是治疗方案，也不能代替面诊。"));
+  block.appendChild(el("p", "intro", "每一项都按你这次的水平来写：分数不同，感受说明和建议也会不同。这些是日常照顾，不是治疗方案。"));
   r.factors.forEach((f) => {
     const def = FACTOR_DEFS.find((d) => d.id === f.id);
-    const card = el("article", "fcard fcard-" + f.level.id);
-    const head = el("div", "fhead");
-    head.append(el("h3", null, f.name), el("span", "lv lv-" + f.level.id, f.level.name));
-    const tip = el("p", "ftip");
-    tip.append(el("span", "tip-tag", "日常调适"), document.createTextNode(def.tips[f.level.id]));
-    card.append(
-      head,
-      el("p", "fmeta", "原始分 " + f.raw + " · 均分 " + f.mean.toFixed(2) + " · " + f.n + " 题"),
-      el("p", "fmean", def.meaning),
-      tip
-    );
+    const card = el("article", "fcard");
+    card.id = "factor-" + f.id;
+    const topRow = el("div", "fcard-top");
+    const titles = el("div");
+    titles.append(el("h3", null, f.name), el("p", "fsub", def.meaning));
+    topRow.append(el("span", "fdot fdot-" + f.level.id), titles);
+    const scoreRow = el("div", "fscore-row");
+    const scoreBlock = el("div");
+    const score = el("p", "fscore", f.mean.toFixed(2));
+    score.style.color = NUM_COLOR[f.level.id] || NUM_COLOR.ok;
+    scoreBlock.append(score, el("p", "fscore-label", "均分"));
+    scoreRow.append(scoreBlock, el("span", "lv lv-" + f.level.id, f.level.name));
+    const showPanel = el("section", "fpanel");
+    const showTitle = el("h4");
+    showTitle.append(el("span", "mark mark-te", "特"), document.createTextNode("心理特征表现"));
+    showPanel.append(showTitle, el("p", null, def.shows[f.level.id]));
+    const tipPanel = el("section", "fpanel");
+    const tipTitle = el("h4");
+    tipTitle.append(el("span", "mark mark-jian", "建"), document.createTextNode("改善建议"));
+    tipPanel.append(tipTitle, el("p", null, def.tips[f.level.id]));
+    card.append(topRow, scoreRow, showPanel, tipPanel);
     block.appendChild(card);
   });
   root.appendChild(block);
