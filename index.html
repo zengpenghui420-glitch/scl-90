@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f4f0e6">
+<meta name="description" content="SCL-90 综合心理自评。按最近一周的感受完成 90 题，查看总分、十个因子和雷达图。结果仅供自我了解，不能替代专业诊断。">
+<meta property="og:title" content="SCL-90 综合心理自评">
+<meta property="og:description" content="按最近一周的感受，做一套 90 题症状自评。结果留在本机，不能替代专业诊断。">
+<title>SCL-90 综合心理自评</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f4f0e6'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%233e7a74'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --cream: #f4f0e6;
+    --cream-2: #fbf8f2;
+    --ink: #24312c;
+    --muted: #66716b;
+    --sage: #6d8b78;
+    --teal: #3e7a74;
+    --teal-deep: #2c5e59;
+    --line: #e4dcd0;
+    --card: #fffcf7;
+    --shadow: 0 10px 30px rgba(70, 84, 74, 0.06);
+    --safe-b: env(safe-area-inset-bottom);
+    --safe-t: env(safe-area-inset-top);
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+    background:
+      radial-gradient(900px 420px at 0% -10%, #e6f2ea 0%, transparent 55%),
+      radial-gradient(700px 380px at 100% 0%, #e5f3f1 0%, transparent 50%),
+      var(--cream);
+    overscroll-behavior-y: contain;
+  }
+  body.lock { overflow: hidden; }
+  button, input { font-family: inherit; }
+  button { -webkit-tap-highlight-color: transparent; cursor: pointer; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  .app { width: min(480px, 100%); margin: 0 auto; min-height: 100vh; min-height: 100dvh; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  #quiz.active, #loading.active, #start.active { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+  #loading.active { align-items: center; justify-content: center; text-align: center; padding: 24px; }
+
+  .btn-primary, .btn-outline, .btn-text {
+    border-radius: 999px;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 48px;
+  }
+  .btn-primary {
+    width: 100%;
+    border: none;
+    color: #f7fbfa;
+    background: linear-gradient(180deg, #4d918a, #3a746e);
+    box-shadow: 0 8px 18px rgba(62, 122, 116, 0.22);
+  }
+  .btn-primary:disabled { opacity: 0.65; }
+  .btn-outline {
+    width: 100%;
+    background: transparent;
+    color: var(--teal-deep);
+    border: 1.5px solid #b7d0cb;
+  }
+  .btn-text {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    min-height: 40px;
+  }
+  .half { width: auto; flex: 1; }
+
+  /* cover */
+  #start { padding: calc(22px + var(--safe-t)) 22px calc(28px + var(--safe-b)); }
+  .hero { margin: 0 -6px 6px; }
+  .hero svg { width: 100%; height: auto; display: block; }
+  .eyebrow {
+    margin: 0 0 8px;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--sage);
+    font-weight: 600;
+  }
+  h1 {
+    margin: 0 0 12px;
+    font-size: 34px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  h1 span { color: var(--teal-deep); }
+  .hook { margin: 0 0 16px; font-size: 15.5px; line-height: 1.7; color: #3e4c46; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .pills span {
+    font-size: 12.5px;
+    color: var(--teal-deep);
+    background: #e7f3ef;
+    border-radius: 999px;
+    padding: 6px 10px;
+  }
+  .start-actions { display: flex; flex-direction: column; gap: 10px; }
+  .hint { margin: 14px 0 0; font-size: 13px; color: var(--muted); line-height: 1.6; text-align: center; }
+  #start .disclaimer { margin-top: auto; }
+  .disclaimer {
+    margin: 18px 0 0;
+    padding: 12px 14px;
+    background: #f3f6f1;
+    border-left: 3px solid var(--sage);
+    border-radius: 12px;
+    color: #3d4a44;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  /* quiz */
+  .quiz-header {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    padding: calc(12px + var(--safe-t)) 16px 8px;
+    background: rgba(244, 240, 230, 0.94);
+    backdrop-filter: blur(10px);
+  }
+  .quiz-progress-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .progress-label { font-size: 13px; color: var(--muted); }
+  .progress-num { font-size: 15px; font-weight: 700; color: var(--teal-deep); font-variant-numeric: tabular-nums; }
+  .bar { height: 6px; background: #e6e0d4; border-radius: 99px; margin-top: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; background: linear-gradient(90deg, #8fb5a4, #3e7a74); border-radius: 99px; transition: width 0.25s ease; }
+  .done-line { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+  .quiz-body { flex: 1; padding: 8px 16px 12px; }
+  .q-no { margin: 8px 0 6px; font-size: 13px; letter-spacing: 0.08em; color: var(--sage); font-weight: 600; }
+  .q-text { margin: 0 0 8px; font-size: 22px; line-height: 1.45; font-weight: 700; animation: rise 0.28s ease; }
+  .q-frame { margin: 0 0 14px; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    padding: 13px 14px;
+    font-size: 16px;
+    color: var(--ink);
+  }
+  .opt.selected { border-color: var(--teal); background: #eef6f4; }
+  .opt:active { transform: scale(0.99); }
+  .opt-no {
+    width: 28px; height: 28px; border-radius: 9px;
+    background: #f3efe6; color: #5e6b64;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 14px; flex: none;
+  }
+  .opt.selected .opt-no { background: var(--teal); color: #f4fbfa; }
+  .quiz-nav {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    gap: 10px;
+    padding: 10px 16px calc(12px + var(--safe-b));
+    background: rgba(244, 240, 230, 0.94);
+    backdrop-filter: blur(10px);
+  }
+  .is-dim { opacity: 0.55; }
+
+  .spin {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 3px solid #d5e6e1; border-top-color: var(--teal);
+    animation: spin 0.8s linear infinite;
+  }
+  .loading-title { margin: 16px 0 0; font-size: 16px; font-weight: 600; color: var(--teal-deep); }
+  .loading-sub { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* result */
+  .result-wrap { padding: calc(16px + var(--safe-t)) 16px 8px; }
+  .card {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    padding: 18px 16px 16px;
+    margin-bottom: 14px;
+  }
+  .sec-kicker { margin: 0; text-align: center; font-size: 13px; color: var(--muted); letter-spacing: 0.06em; }
+  .score-num {
+    margin: 4px 0 0;
+    text-align: center;
+    font-size: 72px;
+    line-height: 1;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+  }
+  .score-max { margin: 6px 0 0; text-align: center; color: var(--muted); font-size: 13px; }
+  .degree-label { margin: 16px 0 8px; text-align: center; font-size: 13px; color: var(--muted); }
+  .badge-row { display: flex; justify-content: center; }
+  .hint-line { margin: 8px 0 0; text-align: center; font-size: 13px; font-weight: 650; }
+  .summary { margin: 12px 0 0; font-size: 15px; line-height: 1.7; color: #31403a; }
+  .when { margin: 10px 0 0; text-align: center; font-size: 12px; color: #8a938e; }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .metric { background: #f6f3ec; border-radius: 14px; padding: 10px 6px; text-align: center; }
+  .metric b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--teal-deep); }
+  .metric span { display: block; margin-top: 2px; font-size: 11px; color: var(--muted); }
+  .fine { margin: 10px 0 0; font-size: 12.5px; line-height: 1.65; color: var(--muted); }
+  .sec-title { margin: 0 0 12px; font-size: 18px; font-weight: 700; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 8px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .lg { font-size: 12px; color: #4e5b55; display: inline-flex; align-items: center; }
+  .lv { display: inline-block; border-radius: 999px; padding: 3px 8px; font-size: 12px; font-weight: 700; line-height: 1.4; }
+  .lv-ok { background: #e5f4ec; color: #24724e; }
+  .lv-mild { background: #f8f1dc; color: #8a6420; }
+  .lv-mod { background: #f8eadc; color: #9a5624; }
+  .lv-sev { background: #f8e4e4; color: #9a3f3f; }
+  .dot-ok { background: #3e9a6e; }
+  .dot-mild { background: #c4a15a; }
+  .dot-mod { background: #d08948; }
+  .dot-sev { background: #d06a6a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 12px; font-weight: 500; color: #8a938e; text-align: left; padding: 4px 4px 8px; }
+  td { padding: 11px 4px; border-top: 1px solid #f0ebe3; font-size: 13.5px; vertical-align: middle; }
+  th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.mean { font-weight: 700; }
+  td.mean.lv-ok { color: #24724e; }
+  td.mean.lv-mild { color: #8a6420; }
+  td.mean.lv-mod { color: #9a5624; }
+  td.mean.lv-sev { color: #9a3f3f; }
+  td.lvcell { text-align: right; width: 64px; }
+  .fname { font-weight: 600; }
+  .radar-note { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .radar-box svg { width: 100%; height: auto; display: block; }
+  .intro { margin: -4px 0 12px; font-size: 13.5px; line-height: 1.65; color: #4c5a54; }
+  .fcard {
+    background: var(--card);
+    border-radius: 18px;
+    border: 1px solid #f3eee6;
+    border-left-width: 4px;
+    box-shadow: var(--shadow);
+    padding: 14px 14px 12px;
+    margin-bottom: 12px;
+  }
+  .fcard-ok { border-left-color: #7dba9b; }
+  .fcard-mild { border-left-color: #e0c27a; }
+  .fcard-mod { border-left-color: #e0a36a; }
+  .fcard-sev { border-left-color: #e09a9a; }
+  .fhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .fhead h3 { margin: 0; font-size: 16px; }
+  .fmeta { margin: 6px 0 8px; font-size: 12.5px; color: var(--muted); }
+  .fmean, .ftip { margin: 0; font-size: 14px; line-height: 1.7; color: #31403a; }
+  .ftip { margin-top: 8px; }
+  .tip-tag { color: var(--teal-deep); font-weight: 700; margin-right: 6px; }
+  .care {
+    background: #f8f1ec;
+    border: 1px solid #eadfd6;
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .care h3 { margin: 0 0 6px; font-size: 16px; color: #6d4a3e; }
+  .care p { margin: 0; font-size: 14px; line-height: 1.7; color: #5c4a43; }
+  .care a { color: var(--teal-deep); font-weight: 700; }
+  .result-actions {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 16px calc(12px + var(--safe-b));
+    background: rgba(244, 240, 230, 0.94);
+    backdrop-filter: blur(10px);
+  }
+  .disc-tight { margin-top: 4px; }
+
+  .mask {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(36, 49, 44, 0.38);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .panel {
+    position: relative;
+    width: min(360px, 100%);
+    background: var(--cream-2);
+    border-radius: 22px;
+    padding: 26px 18px 18px;
+    box-shadow: 0 16px 40px rgba(36, 49, 44, 0.16);
+    text-align: center;
+  }
+  .panel h3 { margin: 0 0 14px; font-size: 18px; }
+  .panel input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 12px;
+    border: 1.5px solid #ddd4c6;
+    border-radius: 14px;
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 0.14em;
+    background: #fff;
+    color: var(--ink);
+  }
+  .panel input:focus { border-color: var(--teal); }
+  .panel .btn-primary { margin-top: 12px; }
+  .code-hint { margin: 12px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+  .x {
+    position: absolute;
+    top: 8px; right: 10px;
+    width: 36px; height: 36px;
+    border: none; background: none;
+    color: #7d8882; font-size: 22px; line-height: 1;
+  }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(28px + var(--safe-b));
+    transform: translateX(-50%);
+    background: rgba(47, 66, 60, 0.92);
+    color: #f7fbf8;
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    max-width: min(420px, calc(100% - 32px));
+    text-align: center;
+  }
+  .toast.show { opacity: 1; }
+  .noscript { padding: 24px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <section id="start" class="screen">
+    <div class="hero" aria-hidden="true">
+      <svg viewBox="0 0 360 108">
+        <circle cx="292" cy="28" r="16" fill="#e5f3f1"/>
+        <circle cx="58" cy="24" r="10" fill="#e7f2ea"/>
+        <path d="M74 78c18-6 28-22 30-38" fill="none" stroke="#7d9a84" stroke-width="1.6" stroke-linecap="round"/>
+        <ellipse cx="96" cy="52" rx="16" ry="8" transform="rotate(-48 96 52)" fill="#d5e8dc"/>
+        <ellipse cx="112" cy="34" rx="13" ry="6.5" transform="rotate(-28 112 34)" fill="#d7eeea"/>
+        <path d="M248 82c-16-10-22-28-18-44" fill="none" stroke="#6f9a96" stroke-width="1.6" stroke-linecap="round"/>
+        <ellipse cx="236" cy="50" rx="15" ry="7" transform="rotate(42 236 50)" fill="#d5ebe6"/>
+      </svg>
+    </div>
+    <p class="eyebrow">症状自评量表 · 最近一周</p>
+    <h1>SCL-90<br><span>综合心理自评</span></h1>
+    <p class="hook">最近是不是容易累、睡不踏实，或者心里闷着，又说不清是哪里不对？九十道小题，帮你把这些感觉轻轻摊开看看。</p>
+    <div class="pills">
+      <span>90 道题</span>
+      <span>10 个维度</span>
+      <span>约 10 分钟</span>
+      <span>结果留在本机</span>
+    </div>
+    <div class="start-actions">
+      <button type="button" class="btn-primary" id="btnStart">开始测试</button>
+      <button type="button" class="btn-outline" id="btnRestart" hidden>重新测试</button>
+      <button type="button" class="btn-outline" id="btnLast" hidden>查看上次结果</button>
+    </div>
+    <p class="hint" id="urlHint" hidden>链接中的验证码已填好，点「开始测试」后确认即可。</p>
+    <p class="hint">按第一感觉作答就好，没有对错。</p>
+    <p class="disclaimer">本测试为心理症状筛查工具，结果仅供自我了解与参考，不能替代专业诊断或治疗；如持续困扰请寻求正规心理/医疗机构帮助</p>
+  </section>
+
+  <section id="quiz" class="screen">
+    <header class="quiz-header">
+      <div class="quiz-progress-row">
+        <span class="progress-label">答题进度</span>
+        <span class="progress-num" id="quizProgress" aria-live="polite">1 / 90</span>
+      </div>
+      <div class="bar" aria-hidden="true"><div class="bar-fill" id="barFill"></div></div>
+      <p class="done-line" id="quizDone">已作答 0 / 90</p>
+    </header>
+    <div class="quiz-body">
+      <p class="q-no" id="qNo">第 1 题</p>
+      <h2 class="q-text" id="qText"></h2>
+      <p class="q-frame">最近一星期里，它在多大程度上让你困扰？</p>
+      <div class="options" id="options" role="group" aria-label="作答"></div>
+    </div>
+    <div class="quiz-nav">
+      <button type="button" class="btn-outline half" id="btnBack">上一题</button>
+      <button type="button" class="btn-primary half" id="btnNext">下一题</button>
+    </div>
+  </section>
+
+  <section id="loading" class="screen">
+    <div class="spin" aria-hidden="true"></div>
+    <p class="loading-title">正在整理你的结果</p>
+    <p class="loading-sub">按十个维度归纳最近一周的感受</p>
+  </section>
+
+  <section id="result" class="screen">
+    <div class="result-wrap" id="resultInner"></div>
+    <div class="result-actions">
+      <button type="button" class="btn-primary" id="btnRetry">重新测试</button>
+      <button type="button" class="btn-outline" id="btnCopy">复制结果摘要</button>
+      <button type="button" class="btn-outline" id="btnResume" hidden>继续未完成的测试</button>
+      <button type="button" class="btn-text" id="btnViewLast">查看上次结果</button>
+      <button type="button" class="btn-text" id="btnHome">返回首页</button>
+    </div>
+  </section>
+</main>
+
+<div class="mask" id="codeMask" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="codeTitle">
+    <button type="button" class="x" id="codeClose" aria-label="关闭">×</button>
+    <h3 id="codeTitle">输入验证码</h3>
+    <input id="codeInput" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="12" placeholder="例如 SCAB23" aria-label="验证码">
+    <button type="button" class="btn-primary" id="btnCodeOk" data-label="开始测试">开始测试</button>
+    <p class="code-hint" id="codeHint">购买后客服会把验证码发给你<br>每个码限用 3 次 · 查看上次结果不扣次数</p>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<noscript><p class="noscript">请开启浏览器的 JavaScript 后再做这套自评。</p></noscript>
+
+<script>
+/* 分级（展示用，按保留两位小数后的均分）：
+   正常 < 2.00；轻度 2.00–2.49；中度 2.50–2.99；重度 ≥ 3.00。
+   总分级用总均分 = 总分 / 90，因此 232 分 → 2.58 → 中度。
+   计分 1–5（从无到严重），总分范围 90–450。
+   阳性项目：单项 ≥ 2。阳性均分 = (总分 − 阴性项目数) / 阳性项目数。
+   因子题目数：躯体化 12、强迫 10、人际 9、抑郁 13、焦虑 10、敌对 6、恐怖 7、偏执 6、精神病性 10、其他 7。 */
+/* __PURE_START__ */
+const ITEMS = [
+  "头痛",
+  "神经过敏，心中不踏实",
+  "头脑中有不必要的想法或字句盘旋",
+  "头昏或昏倒",
+  "对异性的兴趣减退",
+  "对旁人责备求全",
+  "感到别人能控制您的思想",
+  "责怪别人制造麻烦",
+  "忘记性大",
+  "担心自己的衣饰整齐及仪态的端正",
+  "容易烦恼和激动",
+  "胸痛",
+  "害怕空旷的场所或街道",
+  "感到自己的精力下降，活动减慢",
+  "想结束自己的生命",
+  "听到旁人听不到的声音",
+  "发抖",
+  "感到大多数人都不可信任",
+  "胃口不好",
+  "容易哭泣",
+  "同异性相处时感到害羞不自在",
+  "感到受骗，中了圈套或有人想抓住您",
+  "无缘无故地突然感到害怕",
+  "自己不能控制地大发脾气",
+  "怕单独出门",
+  "经常责怪自己",
+  "腰痛",
+  "感到难以完成任务",
+  "感到孤独",
+  "感到苦闷",
+  "过分担忧",
+  "对事物不感兴趣",
+  "感到害怕",
+  "您的感情容易受到伤害",
+  "旁人能知道您的私下想法",
+  "感到别人不理解您、不同情您",
+  "感到人们对您不友好，不喜欢您",
+  "做事必须做得很慢以保证做得正确",
+  "心跳得很厉害",
+  "恶心或胃部不舒服",
+  "感到比不上他人",
+  "肌肉酸痛",
+  "感到有人在监视您、谈论您",
+  "难以入睡",
+  "做事必须反复检查",
+  "难以作出决定",
+  "怕乘电车、公共汽车、地铁或火车",
+  "呼吸有困难",
+  "一阵阵发冷或发热",
+  "因为感到害怕而避开某些东西、场合或活动",
+  "脑子变空了",
+  "身体发麻或刺痛",
+  "喉咙有梗塞感",
+  "感到前途没有希望",
+  "不能集中注意力",
+  "感到身体的某一部分软弱无力",
+  "感到紧张或容易紧张",
+  "感到手或脚发重",
+  "想到死亡的事",
+  "吃得太多",
+  "当别人看着您或谈论您时感到不自在",
+  "有一些不属于您自己的想法",
+  "有想打人或伤害他人的冲动",
+  "醒得太早",
+  "必须反复洗手、点数目或触摸某些东西",
+  "睡得不稳不深",
+  "有想摔坏或破坏东西的冲动",
+  "有一些别人没有的想法或念头",
+  "感到对别人神经过敏",
+  "在商店或电影院等人多的地方感到不自在",
+  "感到任何事情都很困难",
+  "一阵阵恐惧或惊恐",
+  "感到在公共场合吃东西很不舒服",
+  "经常与人争论",
+  "单独一人时神经很紧张",
+  "别人对您的成绩没有作出恰当的评价",
+  "即使和别人在一起也感到孤单",
+  "感到坐立不安心神不定",
+  "感到自己没有什么价值",
+  "感到熟悉的东西变成陌生或不像是真的",
+  "大叫或摔东西",
+  "害怕会在公共场合昏倒",
+  "感到别人想占您的便宜",
+  "为一些有关性的想法而很苦恼",
+  "您认为应该因为自己的过错而受到惩罚",
+  "感到要赶快把事情做完",
+  "感到自己的身体有严重问题",
+  "从未感到和其他人很亲近",
+  "感到自己有罪",
+  "感到自己的脑子有毛病"
+];
+
+const FACTOR_DEFS = [
+  {
+    id: "som", name: "躯体化", short: "躯体化",
+    items: [1, 4, 12, 27, 40, 42, 48, 49, 52, 53, 56, 58],
+    meaning: "这一维看的是头痛、肠胃、胸闷、酸痛、发麻这类身体不舒服。有时它和压力、睡眠绑在一起，并不等于身体已经生病。",
+    tips: {
+      ok: "身体感受目前比较平稳。规律吃饭、活动一下、早点休息，就够用了。",
+      mild: "可以留意不适是不是跟着熬夜、久坐或紧张出现。试试固定睡觉时间，饭后走一走。",
+      mod: "把任务拆小一点，少熬夜，肩颈不舒服时起来活动。如果疼痛反复，也可以先做一次普通体检，看看有没有身体方面的原因。",
+      sev: "身体不适已经比较明显。先保证睡眠和饮食，不必硬扛。建议到正规医院检查身体，也可以一并看看压力和这些感觉的关系。"
+    }
+  },
+  {
+    id: "oc", name: "强迫症状", short: "强迫",
+    items: [3, 9, 10, 28, 38, 45, 46, 51, 55, 65],
+    meaning: "这一维看的是停不下来的念头、反复检查、做事特别慢或怕出错。很多时候人明知道没必要，却还是放不下。",
+    tips: {
+      ok: "这类纠缠目前不明显。保持现在的做事节奏就好。",
+      mild: "可以试一个小约定：检查一次就停，把担心写在纸上，而不是在脑子里转圈。",
+      mod: "允许事情足够好，而不是每次都完美。一次只完成一小步，做完就离开，不要立刻返工。",
+      sev: "如果这些念头或动作已经占掉很多时间，单靠硬忍会很累。建议找正规心理咨询或医疗机构，一起找更省力的相处办法。"
+    }
+  },
+  {
+    id: "is", name: "人际关系敏感", short: "人际",
+    items: [6, 21, 34, 36, 37, 41, 61, 69, 73],
+    meaning: "这一维看的是和人相处时的不自在：在意评价、觉得不如别人、担心不被喜欢或不被理解。",
+    tips: {
+      ok: "和人相处的紧张感目前不高。",
+      mild: "别人的沉默不一定是针对你。可以先找一位比较安心的人，说一件很小的事。",
+      mod: "把「我是不是做错了」先放一放，改问自己实际看到了什么。一次相处不必表现得很完美。",
+      sev: "如果见人或回消息已经让你明显痛苦，值得找信任的人说说，也可以考虑心理咨询。这是在意关系，不是你人不好。"
+    }
+  },
+  {
+    id: "dep", name: "抑郁", short: "抑郁",
+    items: [5, 14, 15, 20, 22, 26, 29, 30, 31, 32, 54, 71, 79],
+    meaning: "这一维看的是劲头和兴趣：是否提不起精神、容易自责、觉得日子发灰，或对原来喜欢的事淡了。",
+    tips: {
+      ok: "情绪底色目前比较稳。继续留一点让自己松下来的时间。",
+      mild: "选一件很小、做完就有感觉的事，比如晒十分钟太阳，或出门走一圈。不必等有劲了再动。",
+      mod: "低落的时候，人容易觉得什么都没意义。可以先告诉一位信任的人你最近有点撑着，并把今天要做的事减到一两件。",
+      sev: "这种状态若已经持续一段时间，并影响到吃饭、睡觉或日常事务，建议尽快到正规医院的心理科或精神科做评估。在预约之前，先让身边的人知道你不太好。"
+    }
+  },
+  {
+    id: "anx", name: "焦虑", short: "焦虑",
+    items: [2, 17, 23, 33, 39, 57, 72, 78, 80, 86],
+    meaning: "这一维看的是紧张、心慌、坐不住，以及突然冒出来的害怕。",
+    tips: {
+      ok: "焦虑水平目前不高。",
+      mild: "浓茶和咖啡可以少一点。紧张上来时，把脚踩实，慢慢把气呼出去。",
+      mod: "担心来的时候，写下你在怕什么，以及现在能做的最小一步。做完这一步就可以先停。",
+      sev: "如果心慌、害怕已经经常打断生活，建议寻求正规心理或医疗机构的帮助。在那之前，减少熬夜，会让身体好受一些。"
+    }
+  },
+  {
+    id: "hos", name: "敌对", short: "敌对",
+    items: [11, 24, 63, 67, 74, 81],
+    meaning: "这一维看的是烦躁、容易争辩、想发火，或有摔东西的冲动。它描述的是火气，不是你的人品。",
+    tips: {
+      ok: "火气目前不大。意见不合时，先听完再决定要不要回应，通常就够了。",
+      mild: "生气时先离开几分钟，走一走，再决定要不要说。",
+      mod: "开口时尽量说「我感到……」，而不是先指责对方。说重了如果后悔，可以之后再补一句。",
+      sev: "如果发火时担心自己会伤到别人或自己，请先离开现场，联系信任的人，或拨打心理援助热线 12356。不必等事情变大。"
+    }
+  },
+  {
+    id: "phob", name: "恐怖", short: "恐怖",
+    items: [13, 25, 47, 50, 70, 75, 82],
+    meaning: "这一维看的是对某些场合的害怕，比如空旷的地方、人群、交通工具或单独出门，以及因为害怕而躲开。",
+    tips: {
+      ok: "这方面的害怕目前不明显。",
+      mild: "如果只是轻微，可以在有人陪同时，稍微靠近一点点你在意的场合。",
+      mod: "不必一次面对最怕的场景。选一个小到你觉得勉强可以的步骤，做完就收。",
+      sev: "如果害怕已经让你很难出门、上学或上班，建议寻求正规心理咨询。可以有人陪同，一步一步来。"
+    }
+  },
+  {
+    id: "par", name: "偏执", short: "偏执",
+    items: [8, 18, 43, 68, 76, 83],
+    meaning: "这一维看的是猜疑和被针对的感觉：觉得别人不可信、在议论自己，或想占自己便宜。",
+    tips: {
+      ok: "对他人的防备目前不高。",
+      mild: "先找一个不那么糟的解释，再决定要不要回应。也可以和信任的人核对你看到的事实。",
+      mod: "感觉很真的时候，人容易马上回应。可以先把想说的话记下来，过几个小时再看要不要发出去。",
+      sev: "如果这种感觉很强烈、持续，并且让你和周围人越来越远，建议到正规精神心理机构做一次评估。分数高不等于有病，只说明你现在很不好受。"
+    }
+  },
+  {
+    id: "psy", name: "精神病性", short: "精神病性",
+    items: [7, 16, 35, 62, 77, 84, 85, 87, 88, 90],
+    meaning: "这一维涉及一些不寻常的体验，例如觉得想法不太像自己的、听到别人听不见的声音，或和人很难亲近。它只反映困扰的程度，不能用来判断有没有精神疾病。",
+    tips: {
+      ok: "这类体验目前不明显。",
+      mild: "偶尔的陌生感有时和睡眠不足、压力大有关。先把觉睡够，再观察会不会减轻。",
+      mod: "如果这些体验让你不安，可以告诉一位你信任、并且不会取笑你的人，一起决定要不要去医院看看。",
+      sev: "若这类体验比较频繁，或你开始分不清它是不是真实发生的，请尽快到正规医院的精神心理科就诊。早点问一问，是在照顾自己。"
+    }
+  },
+  {
+    id: "add", name: "其他（睡眠饮食）", short: "睡眠饮食",
+    items: [19, 44, 59, 60, 64, 66, 89],
+    meaning: "这一维主要看睡眠和饮食：难入睡、早醒、睡得浅，或者胃口变差、吃得很多。也包括少数没有归进上面九类的感受。",
+    tips: {
+      ok: "睡眠和饮食目前比较稳。",
+      mild: "尽量固定起床时间。睡前少看一会儿屏幕，晚饭不要过饱。",
+      mod: "胃口和睡眠一起乱，常常是压力的信号。白天少补很长的觉，晚上的床尽量只用来睡觉。",
+      sev: "如果长期睡不好或几乎吃不下，身体会更累。建议到正规医疗机构，从身体和心理两方面一起看看。"
+    }
+  }
+];
+
+function shownMean(mean) {
+  return Number(mean.toFixed(2));
+}
+function levelFromMean(mean) {
+  const shown = shownMean(mean);
+  if (shown < 2) return { id: "ok", name: "正常" };
+  if (shown < 2.5) return { id: "mild", name: "轻度" };
+  if (shown < 3) return { id: "mod", name: "中度" };
+  return { id: "sev", name: "重度" };
+}
+function scoreAnswers(answers) {
+  if (!Array.isArray(answers) || answers.length !== 90) throw new Error("need 90 answers");
+  let total = 0;
+  let positive = 0;
+  let negative = 0;
+  for (let i = 0; i < 90; i++) {
+    const v = answers[i];
+    if (v < 1 || v > 5 || v !== Math.round(v)) throw new Error("bad item " + (i + 1));
+    total += v;
+    if (v >= 2) positive += 1;
+    else negative += 1;
+  }
+  const gsi = total / 90;
+  const psdi = positive ? (total - negative) / positive : null;
+  const factors = FACTOR_DEFS.map((f) => {
+    let raw = 0;
+    for (const n of f.items) raw += answers[n - 1];
+    const mean = raw / f.items.length;
+    return { id: f.id, name: f.name, short: f.short, n: f.items.length, raw: raw, mean: mean, level: levelFromMean(mean) };
+  });
+  const rawSum = factors.reduce((s, f) => s + f.raw, 0);
+  if (rawSum !== total) throw new Error("factor raw " + rawSum + " != total " + total);
+  return {
+    total: total,
+    gsi: gsi,
+    positive: positive,
+    negative: negative,
+    psdi: psdi,
+    factors: factors,
+    overall: levelFromMean(gsi),
+    care: answers[14] >= 2,
+    at: new Date().toISOString()
+  };
+}
+/* __PURE_END__ */
+
+const DISCLAIMER = "本测试为心理症状筛查工具，结果仅供自我了解与参考，不能替代专业诊断或治疗；如持续困扰请寻求正规心理/医疗机构帮助";
+const OVERALL_COPY = {
+  ok: { hint: "状态平稳", line: "最近一周的整体感受比较平稳，多数困扰不明显。按现在的节奏照顾自己就好。" },
+  mild: { hint: "轻微波动", line: "有一些感受在打扰你，但大体还能应付。适合先从睡眠和每天的节奏上轻轻调整。" },
+  mod: { hint: "建议调适", line: "这些感受已经比较影响状态，值得认真照顾自己，也可以和信任的人聊聊。" },
+  sev: { hint: "建议寻求支持", line: "近期的身心负担比较重。请优先休息，并考虑寻求正规心理或医疗机构的帮助。" }
+};
+const CHOICES = [[1, "从无"], [2, "很轻"], [3, "中等"], [4, "偏重"], [5, "严重"]];
+const MANTLE_NS = "catquiz-zph420-codes";
+const MANTLE_KEY = "f60c0dae2088e5ccd5061a110aef0c0ff2a5b85f2658e78809c9123c9d82a22c";
+const MANTLE_BASE = "https://mantledb.sh/v2/" + MANTLE_NS;
+const CODE_RE = /^SC[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/;
+const NUM_COLOR = { ok: "#24724e", mild: "#8a6420", mod: "#9a5624", sev: "#9a3f3f" };
+
+const $ = (id) => document.getElementById(id);
+let answers = Array(90).fill(0);
+let idx = 0;
+let advanceTimer = 0;
+let codeBusy = false;
+let previewSeq = 0;
+let viewing = null;
+const urlCode = normalizeCode(new URLSearchParams(location.search).get("code") || "");
+
+function ssGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+function ssSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+function normalizeCode(v) {
+  return String(v || "")
+    .trim()
+    .replace(/[\uFF21-\uFF3A]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFF21 + 65))
+    .replace(/[\uFF10-\uFF19]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFF10 + 48))
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
+function validCode(code) { return CODE_RE.test(code); }
+function inProgress() { return ssGet("sc90_attempt") === "quiz"; }
+function isResult(r) {
+  return !!(r && typeof r.total === "number" && Array.isArray(r.factors) && r.factors.length === 10 && r.overall && r.overall.id);
+}
+function persist() {
+  ssSet("sc90_answers", JSON.stringify(answers));
+  ssSet("sc90_index", String(idx));
+}
+function loadState() {
+  try {
+    const a = JSON.parse(ssGet("sc90_answers") || "null");
+    if (Array.isArray(a) && a.length === 90) answers = a.map((n) => Number(n) || 0);
+  } catch (e) {}
+  idx = Number(ssGet("sc90_index") || 0);
+  if (!Number.isFinite(idx) || idx < 0 || idx > 89) idx = 0;
+}
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 2400);
+}
+function showScreen(id, opts) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
+  if (!opts || !opts.ephemeral) ssSet("sc90_screen", id);
+  window.scrollTo(0, 0);
+}
+function renderHome() {
+  $("btnStart").textContent = inProgress() ? "继续测试" : "开始测试";
+  $("btnRestart").hidden = !inProgress();
+  let has = false;
+  try { has = isResult(JSON.parse(lsGet("sc90_last_result") || "null")); } catch (e) { has = false; }
+  $("btnLast").hidden = !has;
+  $("urlHint").hidden = !urlCode;
+}
+function showStart() {
+  showScreen("start");
+  renderHome();
+}
+
+function fetchTimeout(url, opts, ms) {
+  const ctrl = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), ms || 12000) : 0;
+  const next = Object.assign({}, opts || {});
+  if (ctrl) next.signal = ctrl.signal;
+  return fetch(url, next).finally(() => { if (timer) clearTimeout(timer); });
+}
+async function mantleGet(code) {
+  const r = await fetchTimeout(MANTLE_BASE + "/sc/" + encodeURIComponent(code), {
+    headers: { "X-Mantle-Key": MANTLE_KEY }
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error("net " + r.status);
+  return r.json();
+}
+async function mantleAdd(code, by) {
+  const r = await fetchTimeout("https://mantledb.sh/v2/increment/" + MANTLE_NS + "/sc/" + encodeURIComponent(code), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Mantle-Key": MANTLE_KEY },
+    body: JSON.stringify({ key: "remaining", by: by })
+  });
+  if (!r.ok) throw new Error("net " + r.status);
+  return r.json();
+}
+async function redeem(code) {
+  const data = await mantleGet(code);
+  if (!data || typeof data.remaining !== "number") return { ok: false, reason: "invalid" };
+  if (data.remaining <= 0) return { ok: false, reason: "exhausted" };
+  const after = await mantleAdd(code, -1);
+  const left = after && typeof after.remaining === "number" ? after.remaining : null;
+  if (left === null) throw new Error("bad remaining");
+  if (left < 0) {
+    try { await mantleAdd(code, 1); } catch (e) {}
+    return { ok: false, reason: "exhausted" };
+  }
+  return { ok: true, remaining: left, max: data.max || 3 };
+}
+
+function setBusy(busy) {
+  const btn = $("btnCodeOk");
+  btn.disabled = !!busy;
+  btn.textContent = busy ? "正在验证…" : (btn.dataset.label || "开始测试");
+}
+function openModal(kind) {
+  const label = kind === "retry" ? "重新测试" : "开始测试";
+  $("btnCodeOk").dataset.label = label;
+  $("btnCodeOk").textContent = label;
+  $("codeInput").value = urlCode || lsGet("sc90_last_code") || "";
+  $("codeMask").hidden = false;
+  document.body.classList.add("lock");
+  previewCode();
+  setTimeout(() => $("codeInput").focus(), 40);
+}
+function closeModal() {
+  $("codeMask").hidden = true;
+  document.body.classList.remove("lock");
+  previewSeq += 1;
+}
+function schedulePreview() {
+  clearTimeout(schedulePreview._t);
+  schedulePreview._t = setTimeout(previewCode, 280);
+}
+async function previewCode() {
+  const seq = ++previewSeq;
+  const code = normalizeCode($("codeInput").value);
+  const hint = $("codeHint");
+  if (!code) {
+    hint.textContent = "购买后客服会把验证码发给你。每个码限用 3 次，查看上次结果不扣次数。";
+    return;
+  }
+  if (!validCode(code)) {
+    hint.textContent = "格式是 SC 加 4 位，例如 SCAB23。";
+    return;
+  }
+  hint.textContent = "正在查询剩余次数…";
+  try {
+    const data = await mantleGet(code);
+    if (seq !== previewSeq) return;
+    if (!data || typeof data.remaining !== "number") hint.textContent = "没有这个验证码。";
+    else if (data.remaining <= 0) hint.textContent = "这个验证码已经用完。";
+    else hint.textContent = "还可使用 " + data.remaining + " 次。确认后计入 1 次，查看上次结果不扣次数。";
+  } catch (e) {
+    if (seq !== previewSeq) return;
+    hint.textContent = "暂时查不到剩余次数，仍可以直接确认。";
+  }
+}
+async function tryUnlock() {
+  if (codeBusy) return;
+  const code = normalizeCode($("codeInput").value);
+  $("codeInput").value = code;
+  if (!code) { toast("请输入验证码"); return; }
+  if (!validCode(code)) { toast("验证码是 SC 加 4 位，例如 SCAB23"); return; }
+  codeBusy = true;
+  setBusy(true);
+  try {
+    const res = await redeem(code);
+    if (res.ok) {
+      const left = res.remaining;
+      toast(left > 0 ? "已开始，这个码还可以再用 " + left + " 次" : "已开始，这是这个码的最后一次");
+      beginFresh(code);
+      return;
+    }
+    toast(res.reason === "exhausted" ? "这个验证码已经用完" : "验证码不正确");
+  } catch (e) {
+    console.error(e);
+    toast("网络异常，请稍后再试");
+  } finally {
+    codeBusy = false;
+    setBusy(false);
+  }
+}
+function beginFresh(code) {
+  answers = Array(90).fill(0);
+  idx = 0;
+  clearTimeout(advanceTimer);
+  ssSet("sc90_attempt", "quiz");
+  ssSet("sc90_code", code);
+  lsSet("sc90_last_code", code);
+  persist();
+  closeModal();
+  showScreen("quiz");
+  renderQ();
+}
+
+function renderQ() {
+  const done = answers.filter((v) => v >= 1).length;
+  $("quizProgress").textContent = (idx + 1) + " / 90";
+  $("quizDone").textContent = "已作答 " + done + " / 90";
+  $("barFill").style.width = (done / 90 * 100) + "%";
+  $("qNo").textContent = "第 " + (idx + 1) + " 题";
+  const qText = $("qText");
+  qText.textContent = ITEMS[idx];
+  qText.style.animation = "none";
+  void qText.offsetWidth;
+  qText.style.animation = "";
+  $("btnBack").textContent = idx === 0 ? "返回" : "上一题";
+  $("btnNext").textContent = idx === 89 ? "查看结果" : "下一题";
+  $("btnNext").classList.toggle("is-dim", !answers[idx]);
+  const box = $("options");
+  box.replaceChildren();
+  for (const pair of CHOICES) {
+    const v = pair[0];
+    const label = pair[1];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "opt" + (answers[idx] === v ? " selected" : "");
+    b.setAttribute("aria-pressed", answers[idx] === v ? "true" : "false");
+    const no = document.createElement("span");
+    no.className = "opt-no";
+    no.textContent = String(v);
+    const lb = document.createElement("span");
+    lb.className = "opt-label";
+    lb.textContent = label;
+    b.append(no, lb);
+    b.addEventListener("click", () => choose(v));
+    box.appendChild(b);
+  }
+}
+function choose(v) {
+  if (ssGet("sc90_screen") !== "quiz") return;
+  answers[idx] = v;
+  persist();
+  renderQ();
+  clearTimeout(advanceTimer);
+  if (idx < 89 && !answers[idx + 1]) {
+    const from = idx;
+    advanceTimer = setTimeout(() => {
+      if (idx === from && answers[idx] === v && !answers[idx + 1]) {
+        idx += 1;
+        persist();
+        renderQ();
+      }
+    }, 280);
+  }
+}
+function quizBack() {
+  clearTimeout(advanceTimer);
+  if (idx === 0) { showStart(); return; }
+  idx -= 1;
+  persist();
+  renderQ();
+}
+function quizNext() {
+  clearTimeout(advanceTimer);
+  if (!answers[idx]) { toast("请先选择最符合的一项"); return; }
+  if (idx === 89) { finish(); return; }
+  idx += 1;
+  persist();
+  renderQ();
+}
+function finish() {
+  if (ssGet("sc90_attempt") !== "quiz") { toast("请先开始测试"); return; }
+  const gap = answers.findIndex((v) => v < 1 || v > 5);
+  if (gap >= 0) {
+    idx = gap;
+    persist();
+    renderQ();
+    toast("还有题目没答完");
+    return;
+  }
+  let result;
+  try { result = scoreAnswers(answers); }
+  catch (e) { console.error(e); toast("计分失败，请重试"); return; }
+  lsSet("sc90_last_result", JSON.stringify(result));
+  ssSet("sc90_view", JSON.stringify(result));
+  ssSet("sc90_attempt", "done");
+  ssSet("sc90_screen", "result");
+  showScreen("loading", { ephemeral: true });
+  setTimeout(() => showResult(result), 640);
+}
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
+}
+function formatWhen(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function radarSVG(factors) {
+  const cx = 180, cy = 188, R = 96, n = factors.length;
+  const pt = (i, v) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+    const rr = Math.max(0, Math.min(5, v)) / 5 * R;
+    return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
+  };
+  let rings = "";
+  let axes = "";
+  for (let k = 1; k <= 5; k++) {
+    const pts = [];
+    for (let i = 0; i < n; i++) pts.push(pt(i, k).map((x) => x.toFixed(1)).join(","));
+    const strong = k === 2;
+    rings += '<polygon points="' + pts.join(" ") + '" fill="none" stroke="' + (strong ? "#b7cfc6" : "#e3eee9") + '" stroke-width="' + (strong ? "1.4" : "1") + '"/>';
+  }
+  for (let i = 0; i < n; i++) {
+    const p = pt(i, 5);
+    axes += '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '" stroke="#e7f1ee" stroke-width="1"/>';
+  }
+  const poly = factors.map((f, i) => pt(i, f.mean).map((x) => x.toFixed(1)).join(",")).join(" ");
+  const dots = factors.map((f, i) => {
+    const p = pt(i, f.mean);
+    return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.2" fill="#3e7a74"/>';
+  }).join("");
+  let labels = "";
+  factors.forEach((f, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+    const lr = R + 30;
+    const x = cx + lr * Math.cos(a);
+    const y = cy + lr * Math.sin(a);
+    const anchor = Math.abs(Math.cos(a)) < 0.25 ? "middle" : (Math.cos(a) > 0 ? "start" : "end");
+    labels += '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + anchor + '" dominant-baseline="middle" font-size="11" fill="#4e5c55">' + esc(f.short) + "</text>";
+  });
+  return '<svg viewBox="0 0 360 380" role="img" aria-label="十个因子均分雷达图" style="font-family:PingFang SC,Hiragino Sans GB,Noto Sans SC,Noto Sans CJK SC,Microsoft YaHei,WenQuanYi Micro Hei,sans-serif">' + rings + axes + '<polygon points="' + poly + '" fill="rgba(62,122,116,0.28)" stroke="#3e7a74" stroke-width="2"/>' + dots + labels + "</svg>";
+}
+function summaryText(r) {
+  const lines = [
+    "SCL-90 综合心理自评",
+    "总分 " + r.total + " / 450 · " + r.overall.name,
+    "总均分 " + r.gsi.toFixed(2) + " · 阳性项目 " + r.positive + " · 阳性均分 " + (r.psdi == null ? "—" : r.psdi.toFixed(2)),
+    OVERALL_COPY[r.overall.id].line,
+    ""
+  ];
+  r.factors.forEach((f) => {
+    lines.push(f.name + "　原始分 " + f.raw + "　均分 " + f.mean.toFixed(2) + "　" + f.level.name);
+  });
+  lines.push("");
+  lines.push(DISCLAIMER);
+  if (r.care) lines.push("若感到撑不住，可拨打全国心理援助热线 12356。");
+  return lines.join("\n");
+}
+function topFactor(factors) {
+  let top = factors[0];
+  for (const f of factors) if (f.mean > top.mean) top = f;
+  return top;
+}
+function paint(r) {
+  const root = $("resultInner");
+  root.replaceChildren();
+  const disc = el("p", "disclaimer", DISCLAIMER);
+  root.appendChild(disc);
+
+  if (r.care) {
+    const care = el("section", "care");
+    care.appendChild(el("h3", null, "请先照顾好自己"));
+    const p = el("p");
+    p.append(
+      document.createTextNode("你在题目里提到了不想活下去的感受。这不是诊断，只是说明你现在可能很痛苦。请尽快联系信任的家人或朋友，或拨打全国心理援助热线 "),
+    );
+    const a = document.createElement("a");
+    a.href = "tel:12356";
+    a.textContent = "12356";
+    p.appendChild(a);
+    p.append(document.createTextNode("。如果觉得自己可能做出危险的事，请立刻前往就近医院急诊。"));
+    care.appendChild(p);
+    root.appendChild(care);
+  }
+
+  const overall = el("section", "card");
+  overall.appendChild(el("p", "sec-kicker", "总体评估"));
+  overall.appendChild(el("p", "sec-kicker", "SCL-90 总分"));
+  const num = el("p", "score-num", String(r.total));
+  num.style.color = NUM_COLOR[r.overall.id] || NUM_COLOR.ok;
+  overall.appendChild(num);
+  overall.appendChild(el("p", "score-max", "满分 450 分"));
+  overall.appendChild(el("p", "degree-label", "心理健康程度"));
+  const badgeRow = el("div", "badge-row");
+  badgeRow.appendChild(el("span", "lv lv-" + r.overall.id, r.overall.name));
+  overall.appendChild(badgeRow);
+  const hint = el("p", "hint-line", OVERALL_COPY[r.overall.id].hint);
+  hint.style.color = NUM_COLOR[r.overall.id] || NUM_COLOR.ok;
+  overall.appendChild(hint);
+  const top = topFactor(r.factors);
+  let line = OVERALL_COPY[r.overall.id].line;
+  if (top.level.id !== "ok") line += "目前更明显的是「" + top.name + "」。";
+  overall.appendChild(el("p", "summary", line));
+  const when = formatWhen(r.at);
+  if (when) overall.appendChild(el("p", "when", "生成于 " + when + " · 答题内容不上传"));
+  root.appendChild(overall);
+
+  const stat = el("section", "card");
+  const metrics = el("div", "metrics");
+  const cells = [
+    [r.gsi.toFixed(2), "总均分"],
+    [String(r.positive), "阳性项目"],
+    [r.psdi == null ? "—" : r.psdi.toFixed(2), "阳性均分"]
+  ];
+  cells.forEach((c) => {
+    const m = el("div", "metric");
+    m.append(el("b", null, c[0]), el("span", null, c[1]));
+    metrics.appendChild(m);
+  });
+  stat.appendChild(metrics);
+  stat.appendChild(el("p", "fine", "阳性项目是选择不是「从无」的题数。阳性均分是这些题的平均分，用来看困扰本身有多重。"));
+  const hit = r.total > 160 || r.positive > 43 || r.factors.some((f) => f.level.id !== "ok");
+  stat.appendChild(el("p", "fine", hit
+    ? "常用筛查参考：总分超过 160，或阳性项目超过 43，或任一因子均分达到 2。本次到了需要多留意的范围。这仍不是诊断。"
+    : "常用筛查参考：总分超过 160，或阳性项目超过 43，或任一因子均分达到 2。本次还没有超过这条关注线。"));
+  root.appendChild(stat);
+
+  const tableCard = el("section", "card");
+  tableCard.appendChild(el("h2", "sec-title", "因子维度详情"));
+  const legend = el("div", "legend");
+  [["ok", "正常 < 2.0"], ["mild", "轻度 2.0–2.49"], ["mod", "中度 2.5–2.99"], ["sev", "重度 ≥ 3.0"]].forEach((pair) => {
+    const s = el("span", "lg");
+    const i = document.createElement("i");
+    i.className = "dot-" + pair[0];
+    s.append(i, document.createTextNode(pair[1]));
+    legend.appendChild(s);
+  });
+  tableCard.appendChild(legend);
+  tableCard.appendChild(el("p", "fine", "均分 = 原始分 ÷ 题数。总分也按总均分归入同一套分级。"));
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  ["维度", "原始分", "均分", "水平"].forEach((h, i) => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    if (i > 0) th.className = "num";
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+  table.appendChild(thead);
+  const tb = document.createElement("tbody");
+  r.factors.forEach((f) => {
+    const tr = document.createElement("tr");
+    const td4 = el("td", "lvcell");
+    td4.appendChild(el("span", "lv lv-" + f.level.id, f.level.name));
+    tr.append(
+      el("td", "fname", f.name),
+      el("td", "num", String(f.raw)),
+      el("td", "num mean lv-" + f.level.id, f.mean.toFixed(2)),
+      td4
+    );
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb);
+  tableCard.appendChild(table);
+  root.appendChild(tableCard);
+
+  const radar = el("section", "card");
+  radar.appendChild(el("h2", "sec-title", "因子雷达图"));
+  const box = el("div", "radar-box");
+  box.innerHTML = radarSVG(r.factors);
+  radar.appendChild(box);
+  radar.appendChild(el("p", "radar-note", "从中心向外是 0 到 5 分，稍深的一圈大约是均分 2。图形越靠外，这一维越明显。每题最低是 1 分，所以图形不会缩到中心。"));
+  root.appendChild(radar);
+
+  const block = el("section");
+  block.appendChild(el("h2", "sec-title", "分项说明"));
+  block.appendChild(el("p", "intro", "下面是每个维度在说什么，以及可以自己试试的小调整。这些只是日常照顾，不是治疗方案，也不能代替面诊。"));
+  r.factors.forEach((f) => {
+    const def = FACTOR_DEFS.find((d) => d.id === f.id);
+    const card = el("article", "fcard fcard-" + f.level.id);
+    const head = el("div", "fhead");
+    head.append(el("h3", null, f.name), el("span", "lv lv-" + f.level.id, f.level.name));
+    const tip = el("p", "ftip");
+    tip.append(el("span", "tip-tag", "日常调适"), document.createTextNode(def.tips[f.level.id]));
+    card.append(
+      head,
+      el("p", "fmeta", "原始分 " + f.raw + " · 均分 " + f.mean.toFixed(2) + " · " + f.n + " 题"),
+      el("p", "fmean", def.meaning),
+      tip
+    );
+    block.appendChild(card);
+  });
+  root.appendChild(block);
+  const foot = el("p", "disclaimer disc-tight", DISCLAIMER);
+  root.appendChild(foot);
+}
+function showResult(r) {
+  viewing = r;
+  ssSet("sc90_view", JSON.stringify(r));
+  showScreen("result");
+  paint(r);
+  $("btnResume").hidden = !inProgress();
+}
+function viewLast() {
+  let r = null;
+  try { r = JSON.parse(lsGet("sc90_last_result") || "null"); } catch (e) { r = null; }
+  if (!isResult(r)) { toast("还没有上次结果"); return; }
+  const same = viewing && viewing.at === r.at && viewing.total === r.total;
+  showResult(r);
+  if (!same) toast("已打开上次结果");
+}
+function resumeQuiz() {
+  if (!inProgress()) { toast("没有未完成的测试"); return; }
+  showScreen("quiz");
+  renderQ();
+}
+function copySummary() {
+  if (!viewing) { toast("还没有可复制的结果"); return; }
+  const text = summaryText(viewing);
+  const done = () => toast("结果摘要已复制");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); done(); }
+  catch (e) { toast("复制失败，可以改用截图"); }
+  ta.remove();
+}
+
+function boot() {
+  loadState();
+  const screen = ssGet("sc90_screen") || "start";
+  if (screen === "quiz" && inProgress()) {
+    showScreen("quiz");
+    renderQ();
+    renderHome();
+    return;
+  }
+  if (screen === "result") {
+    let r = null;
+    try { r = JSON.parse(ssGet("sc90_view") || "null"); } catch (e) {}
+    if (isResult(r)) { showResult(r); return; }
+  }
+  showStart();
+}
+
+$("btnStart").addEventListener("click", () => {
+  if (inProgress()) { resumeQuiz(); return; }
+  openModal("start");
+});
+$("btnRestart").addEventListener("click", () => openModal("retry"));
+$("btnLast").addEventListener("click", viewLast);
+$("btnBack").addEventListener("click", quizBack);
+$("btnNext").addEventListener("click", quizNext);
+$("btnRetry").addEventListener("click", () => openModal("retry"));
+$("btnCopy").addEventListener("click", copySummary);
+$("btnResume").addEventListener("click", resumeQuiz);
+$("btnViewLast").addEventListener("click", viewLast);
+$("btnHome").addEventListener("click", showStart);
+$("btnCodeOk").addEventListener("click", tryUnlock);
+$("codeClose").addEventListener("click", closeModal);
+$("codeMask").addEventListener("click", (e) => { if (e.target === $("codeMask")) closeModal(); });
+$("codeInput").addEventListener("input", () => {
+  const elInput = $("codeInput");
+  const pos = elInput.selectionStart;
+  elInput.value = elInput.value.toUpperCase();
+  if (pos != null) elInput.selectionStart = elInput.selectionEnd = pos;
+  schedulePreview();
+});
+document.addEventListener("keydown", (e) => {
+  if (!$("codeMask").hidden) {
+    if (e.key === "Escape") closeModal();
+    if (e.key === "Enter") { e.preventDefault(); tryUnlock(); }
+    return;
+  }
+  if (ssGet("sc90_screen") !== "quiz") return;
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+  if (e.key >= "1" && e.key <= "5") { choose(Number(e.key)); return; }
+  if (e.key === "ArrowRight") { e.preventDefault(); quizNext(); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); quizBack(); }
+});
+
+try { boot(); }
+catch (e) { console.error(e); showStart(); }
+
+window.SCL90 = {
+  scoreAnswers: scoreAnswers,
+  levelFromMean: levelFromMean,
+  normalizeCode: normalizeCode,
+  validCode: validCode,
+  setAnswers(a) { answers = a.slice(); idx = 0; persist(); },
+  getAnswers() { return answers.slice(); },
+  finish: finish,
+  choose: choose,
+  FACTOR_DEFS: FACTOR_DEFS,
+  ITEMS: ITEMS
+};
+</script>
+</body>
+</html>
