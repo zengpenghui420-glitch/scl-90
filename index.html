@@ -325,7 +325,7 @@
     border-radius: 14px;
     font-size: 16px;
     text-align: center;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.02em;
     background: #fff;
     color: var(--ink);
   }
@@ -347,7 +347,8 @@
     background: rgba(47, 66, 60, 0.92);
     color: #f7fbf8;
     padding: 10px 16px;
-    border-radius: 999px;
+    border-radius: 18px;
+    line-height: 1.45;
     font-size: 13px;
     z-index: 40;
     opacity: 0;
@@ -393,7 +394,7 @@
       <button type="button" class="btn-outline" id="btnRestart" hidden>重新测试</button>
       <button type="button" class="btn-outline" id="btnLast" hidden>查看上次结果</button>
     </div>
-    <p class="hint" id="urlHint" hidden>链接中的验证码已填好，点「开始测试」后确认即可。</p>
+    <p class="hint" id="urlHint" hidden>链接里的号码已填好，点「开始测试」后确认即可。</p>
     <p class="hint">按第一感觉作答就好，没有对错。</p>
     <p class="disclaimer">本测试为心理症状筛查工具，结果仅供自我了解与参考，不能替代专业诊断或治疗；如持续困扰请寻求正规心理/医疗机构帮助</p>
   </section>
@@ -421,8 +422,8 @@
 
   <section id="loading" class="screen">
     <div class="spin" aria-hidden="true"></div>
-    <p class="loading-title">正在整理你的结果</p>
-    <p class="loading-sub">按十个维度归纳最近一周的感受</p>
+    <p class="loading-title" id="loadingTitle">正在整理你的结果</p>
+    <p class="loading-sub" id="loadingSub">按十个维度归纳最近一周的感受</p>
   </section>
 
   <section id="result" class="screen">
@@ -440,10 +441,10 @@
 <div class="mask" id="codeMask" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="codeTitle">
     <button type="button" class="x" id="codeClose" aria-label="关闭">×</button>
-    <h3 id="codeTitle">输入验证码</h3>
-    <input id="codeInput" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="12" placeholder="例如 SCAB23" aria-label="验证码">
+    <h3 id="codeTitle">输入订单号</h3>
+    <input id="codeInput" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="160" placeholder="订单号" aria-label="订单号">
     <button type="button" class="btn-primary" id="btnCodeOk" data-label="开始测试">开始测试</button>
-    <p class="code-hint" id="codeHint">购买后客服会把验证码发给你<br>每个码限用 3 次 · 查看上次结果不扣次数</p>
+    <p class="code-hint" id="codeHint">到小红书「我的订单」复制订单号贴过来<br>每个订单号可以测 3 次 · 查看上次结果不扣次数</p>
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -828,7 +829,7 @@ function toast(msg) {
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => t.classList.remove("show"), 2400);
+  toast._t = setTimeout(() => t.classList.remove("show"), String(msg || "").length > 18 ? 3400 : 2400);
 }
 function showScreen(id, opts) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
@@ -886,6 +887,203 @@ async function redeem(code) {
   return { ok: true, remaining: left, max: data.max || 3 };
 }
 
+/* ORDER_UNLOCK_START */
+/* P+18 → POST /order/redeem on confirm, GET /order/get on refresh.
+   Previously issued codes stay on the Mantle sc/ path above.
+   A timed-out redeem peeks and posts again only when the use count did not go up. */
+const API_BASE = "https://snappy-tundra-7uesdvk-zengpenghui420-glitch.vercel.app";
+const QUIZ_KEY = "scl";
+const ORDER_TIMEOUT_MS = 12000;
+function normalizeOrderId(raw) {
+  let s = String(raw ?? "");
+  if (s.length > 400) s = s.slice(0, 400);
+  s = s.normalize("NFKC").trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")) || (s.startsWith("`") && s.endsWith("`")) || (s.startsWith("「") && s.endsWith("」"))) {
+    s = s.slice(1, -1).trim();
+  }
+  s = s.toUpperCase();
+  s = s.replace(/[\s\u00A0]+/g, "");
+  s = s.replace(/[-_./\\·•:：]+/g, "");
+  return s;
+}
+function isRepeatingBlock(digits) {
+  for (const size of [1, 2, 3, 6, 9]) {
+    const block = digits.slice(0, size);
+    if (block.repeat(digits.length / size) === digits) return true;
+  }
+  return false;
+}
+function isPlusMinusOneMod10(digits) {
+  const step = (digits.charCodeAt(1) - digits.charCodeAt(0) + 10) % 10;
+  if (step !== 1 && step !== 9) return false;
+  for (let i = 1; i < digits.length; i++) {
+    if ((digits.charCodeAt(i) - digits.charCodeAt(i - 1) + 10) % 10 !== step) return false;
+  }
+  return true;
+}
+function orderFormatError(orderId) {
+  if (!/^P\d{18}$/.test(orderId)) return "invalid";
+  const digits = orderId.slice(1);
+  if (isRepeatingBlock(digits) || isPlusMinusOneMod10(digits)) return "invalid";
+  return "";
+}
+function classifyInput(raw) {
+  const trimmed = String(raw || "").trim();
+  if (!trimmed) return { type: "empty" };
+  const orderId = normalizeOrderId(raw);
+  if (/^P\d{18}$/.test(orderId)) return { type: "order", orderId: orderId };
+  if (/^P\d+$/.test(orderId) && orderId.length >= 10) return { type: "order-invalid" };
+  const code = normalizeCode(raw);
+  if (!code) return { type: "empty" };
+  if (/^P\d{10,}$/.test(code)) return { type: "order-invalid" };
+  return { type: "code", code: code };
+}
+function usesOf(res) {
+  if (!res) return null;
+  if (res.ok && typeof res.uses === "number") return res.uses;
+  if (res.error === "not_found") return 0;
+  return null;
+}
+function decideTimeout(beforeUses, after) {
+  if (!after) return "giveup";
+  if (!after.ok && after.error && after.error !== "not_found") return "return";
+  const afterUses = usesOf(after);
+  if (after.ok && beforeUses != null && afterUses != null && afterUses > beforeUses) return "accept";
+  if (after.ok && beforeUses == null) return "accept";
+  if (afterUses === 0 || (beforeUses != null && afterUses != null && afterUses === beforeUses)) return "retry";
+  return "giveup";
+}
+function orderFailText(res) {
+  const e = res && (res.error || res.reason);
+  if (e === "invalid") return "订单号格式不对，请到小红书「我的订单」里复制";
+  if (e === "bound_other_quiz") return "这个订单号已经用来测过别的测试了";
+  if (e === "exhausted") return "这个订单号的 3 次已经用完了";
+  if (e === "rate_limited") return "试的次数有点多，请稍后再试";
+  return "暂时验证不了，请稍后再试";
+}
+function orderTimeoutMs() {
+  try { if (globalThis.__ORDER_TIMEOUT_MS) return globalThis.__ORDER_TIMEOUT_MS; } catch (e) {}
+  return ORDER_TIMEOUT_MS;
+}
+function reconcileWaitMs() {
+  try { if (globalThis.__ORDER_RECONCILE_MS != null) return globalThis.__ORDER_RECONCILE_MS; } catch (e) {}
+  return 1200;
+}
+function deviceId() {
+  const k = "sc90_device";
+  try {
+    let id = localStorage.getItem(k);
+    if (id && /^[A-Za-z0-9._:-]{8,128}$/.test(id)) return id;
+    const buf = new Uint8Array(16);
+    if (typeof crypto !== "undefined" && crypto.getRandomValues) crypto.getRandomValues(buf);
+    else for (let i = 0; i < buf.length; i++) buf[i] = Math.floor(Math.random() * 256);
+    id = Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
+    localStorage.setItem(k, id);
+    return id;
+  } catch (e) { return ""; }
+}
+function orderHeaders(json) {
+  const h = {};
+  if (json) h["Content-Type"] = "application/json";
+  const id = deviceId();
+  if (id) h["X-Device-Id"] = id;
+  return h;
+}
+async function orderFetch(url, opts) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), orderTimeoutMs());
+  try {
+    let r;
+    try { r = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal, cache: "no-store" })); }
+    catch (e) {
+      const err = new Error("timeout");
+      err.timeout = true;
+      throw err;
+    }
+    const text = await r.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      const err = new Error("http " + r.status);
+      err.status = r.status;
+      if (r.status === 500 || r.status === 502 || r.status === 503 || r.status === 504) err.timeout = true;
+      else err.unavailable = true;
+      throw err;
+    }
+    data.status = r.status;
+    if (r.status === 404 && data.error === "not_found") return { ok: false, error: "not_found", status: 404 };
+    if (r.status === 500 || r.status === 502 || r.status === 503 || r.status === 504) {
+      const err = new Error("timeout");
+      err.timeout = true;
+      err.status = r.status;
+      throw err;
+    }
+    return data;
+  } finally { clearTimeout(timer); }
+}
+function orderGetUrl(orderId) {
+  return API_BASE + "/order/get?quiz=" + encodeURIComponent(QUIZ_KEY) + "&orderId=" + encodeURIComponent(orderId);
+}
+async function peekOrder(orderId) {
+  return orderFetch(orderGetUrl(orderId), { method: "GET", headers: orderHeaders(false) });
+}
+async function postRedeem(orderId) {
+  return orderFetch(API_BASE + "/order/redeem", {
+    method: "POST",
+    headers: orderHeaders(true),
+    body: JSON.stringify({ quiz: QUIZ_KEY, orderId: orderId })
+  });
+}
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+async function reconcileTimeout(orderId, beforeUses) {
+  let after = null;
+  try { after = await peekOrder(orderId); } catch (e) { after = null; }
+  let action = decideTimeout(beforeUses, after);
+  if (action === "retry" || action === "giveup") {
+    await sleep(reconcileWaitMs());
+    try { after = await peekOrder(orderId); } catch (e) {}
+    const again = decideTimeout(beforeUses, after);
+    if (again === "accept" || again === "return" || again === "retry") action = again;
+  }
+  return { action: action, after: after };
+}
+async function redeemOrder(orderId) {
+  const bad = orderFormatError(orderId);
+  if (bad) return { ok: false, error: bad };
+  let beforeUses = null;
+  try {
+    const before = await peekOrder(orderId);
+    if (before && before.ok && (before.remaining <= 0 || (typeof before.max === "number" && typeof before.uses === "number" && before.uses >= before.max))) {
+      return { ok: false, error: "exhausted", remaining: 0, max: before.max || 3 };
+    }
+    if (before && !before.ok && before.error && before.error !== "not_found") return before;
+    beforeUses = usesOf(before);
+  } catch (e) {
+    if (!(e && (e.unavailable || e.timeout))) throw e;
+  }
+  async function once() {
+    try { return { kind: "res", res: await postRedeem(orderId) }; }
+    catch (e) { if (e && e.timeout) return { kind: "timeout" }; throw e; }
+  }
+  let outcome = await once();
+  if (outcome.kind === "res") return outcome.res;
+  let rec = await reconcileTimeout(orderId, beforeUses);
+  if (rec.action === "accept" || rec.action === "return") return rec.after;
+  if (rec.action !== "retry") {
+    const err = new Error("timeout");
+    err.timeout = true;
+    throw err;
+  }
+  outcome = await once();
+  if (outcome.kind === "res") return outcome.res;
+  rec = await reconcileTimeout(orderId, beforeUses);
+  if (rec.action === "accept" || rec.action === "return") return rec.after;
+  const err = new Error("timeout");
+  err.timeout = true;
+  throw err;
+}
+/* ORDER_UNLOCK_END */
+
 function setBusy(busy) {
   const btn = $("btnCodeOk");
   btn.disabled = !!busy;
@@ -910,24 +1108,53 @@ function schedulePreview() {
   clearTimeout(schedulePreview._t);
   schedulePreview._t = setTimeout(previewCode, 280);
 }
+function orderHintEmpty() {
+  return "到小红书「我的订单」复制订单号贴过来。每个订单号可以测 3 次，查看上次结果不扣次数。";
+}
+function successText(left) {
+  return left > 0 ? "已开始，还可以再用 " + left + " 次" : "已开始，这是最后一次";
+}
 async function previewCode() {
   const seq = ++previewSeq;
-  const code = normalizeCode($("codeInput").value);
   const hint = $("codeHint");
-  if (!code) {
-    hint.textContent = "购买后客服会把验证码发给你。每个码限用 3 次，查看上次结果不扣次数。";
+  const cls = classifyInput($("codeInput").value);
+  if (cls.type === "empty") {
+    hint.textContent = orderHintEmpty();
     return;
   }
+  if (cls.type === "order-invalid" || (cls.type === "order" && orderFormatError(cls.orderId))) {
+    hint.textContent = "订单号格式不对，请到小红书「我的订单」里复制。";
+    return;
+  }
+  if (cls.type === "order") {
+    hint.textContent = "正在查询剩余次数…";
+    try {
+      const data = await peekOrder(cls.orderId);
+      if (seq !== previewSeq) return;
+      if (data && data.ok && typeof data.remaining === "number") {
+        if (data.remaining <= 0) hint.textContent = "这个订单号的 3 次已经用完了。";
+        else hint.textContent = "还可使用 " + data.remaining + " 次。确认后计入 1 次，查看上次结果不扣次数。";
+      } else if (data && data.error === "not_found") {
+        hint.textContent = "这个订单号可以开始。确认后计入 1 次，每个订单号可以测 3 次。";
+      } else if (data && data.error) hint.textContent = orderFailText(data);
+      else hint.textContent = "暂时查不到剩余次数，仍可以直接确认。";
+    } catch (e) {
+      if (seq !== previewSeq) return;
+      hint.textContent = "暂时查不到剩余次数，仍可以直接确认。";
+    }
+    return;
+  }
+  const code = cls.code;
   if (!validCode(code)) {
-    hint.textContent = "格式是 SC 加 4 位，例如 SCAB23。";
+    hint.textContent = "请到小红书「我的订单」复制订单号贴过来。";
     return;
   }
   hint.textContent = "正在查询剩余次数…";
   try {
     const data = await mantleGet(code);
     if (seq !== previewSeq) return;
-    if (!data || typeof data.remaining !== "number") hint.textContent = "没有这个验证码。";
-    else if (data.remaining <= 0) hint.textContent = "这个验证码已经用完。";
+    if (!data || typeof data.remaining !== "number") hint.textContent = "订单号不对。";
+    else if (data.remaining <= 0) hint.textContent = "次数已经用完了。";
     else hint.textContent = "还可使用 " + data.remaining + " 次。确认后计入 1 次，查看上次结果不扣次数。";
   } catch (e) {
     if (seq !== previewSeq) return;
@@ -936,36 +1163,51 @@ async function previewCode() {
 }
 async function tryUnlock() {
   if (codeBusy) return;
-  const code = normalizeCode($("codeInput").value);
-  $("codeInput").value = code;
-  if (!code) { toast("请输入验证码"); return; }
-  if (!validCode(code)) { toast("验证码是 SC 加 4 位，例如 SCAB23"); return; }
+  const cls = classifyInput($("codeInput").value);
+  if (cls.type === "empty") { toast("请贴上订单号"); return; }
+  if (cls.type === "order-invalid" || (cls.type === "order" && orderFormatError(cls.orderId))) {
+    toast(orderFailText({ error: "invalid" }));
+    return;
+  }
+  if (cls.type === "order") $("codeInput").value = cls.orderId;
+  if (cls.type === "code") $("codeInput").value = cls.code;
+  if (cls.type === "code" && !validCode(cls.code)) { toast("订单号不对"); return; }
   codeBusy = true;
   setBusy(true);
   try {
-    const res = await redeem(code);
-    if (res.ok) {
-      const left = res.remaining;
-      toast(left > 0 ? "已开始，这个码还可以再用 " + left + " 次" : "已开始，这是这个码的最后一次");
-      beginFresh(code);
+    if (cls.type === "order") {
+      const res = await redeemOrder(cls.orderId);
+      if (res && res.ok) {
+        toast(successText(res.remaining));
+        beginFresh(cls.orderId, "order");
+        return;
+      }
+      toast(orderFailText(res));
       return;
     }
-    toast(res.reason === "exhausted" ? "这个验证码已经用完" : "验证码不正确");
+    const res = await redeem(cls.code);
+    if (res.ok) {
+      toast(successText(res.remaining));
+      beginFresh(cls.code, "code");
+      return;
+    }
+    toast(res.reason === "exhausted" ? "次数已经用完了" : "订单号不对");
   } catch (e) {
     console.error(e);
-    toast("网络异常，请稍后再试");
+    toast(cls.type === "order" ? "暂时验证不了，请稍后再试" : "网络异常，请稍后再试");
   } finally {
     codeBusy = false;
     setBusy(false);
   }
 }
-function beginFresh(code) {
+function beginFresh(token, kind) {
   answers = Array(90).fill(0);
   idx = 0;
   clearTimeout(advanceTimer);
   ssSet("sc90_attempt", "quiz");
-  ssSet("sc90_code", code);
-  lsSet("sc90_last_code", code);
+  ssSet("sc90_kind", kind === "order" ? "order" : "code");
+  ssSet("sc90_code", token);
+  lsSet("sc90_last_code", token);
   persist();
   closeModal();
   showScreen("quiz");
@@ -1055,6 +1297,8 @@ function finish() {
   ssSet("sc90_view", JSON.stringify(result));
   ssSet("sc90_attempt", "done");
   ssSet("sc90_screen", "result");
+  $("loadingTitle").textContent = "正在整理你的结果";
+  $("loadingSub").textContent = "按十个维度归纳最近一周的感受";
   showScreen("loading", { ephemeral: true });
   setTimeout(() => showResult(result), 640);
 }
@@ -1326,6 +1570,31 @@ function fallbackCopy(text, done) {
   ta.remove();
 }
 
+async function restoreOrderResult(r) {
+  const orderId = normalizeOrderId(ssGet("sc90_code") || "");
+  if (orderFormatError(orderId)) { showStart(); return; }
+  if (codeBusy) return;
+  codeBusy = true;
+  $("loadingTitle").textContent = "正在打开结果";
+  $("loadingSub").textContent = "正在核对订单号";
+  showScreen("loading", { ephemeral: true });
+  try {
+    const peek = await peekOrder(orderId);
+    if (!peek.ok) {
+      if (peek.error === "not_found") ssSet("sc90_kind", "");
+      else toast(orderFailText(peek));
+      showStart();
+      return;
+    }
+    showResult(r);
+  } catch (e) {
+    console.error(e);
+    showStart();
+    toast("暂时验证不了，请稍后再试");
+  } finally {
+    codeBusy = false;
+  }
+}
 function boot() {
   loadState();
   const screen = ssGet("sc90_screen") || "start";
@@ -1338,7 +1607,11 @@ function boot() {
   if (screen === "result") {
     let r = null;
     try { r = JSON.parse(ssGet("sc90_view") || "null"); } catch (e) {}
-    if (isResult(r)) { showResult(r); return; }
+    if (isResult(r)) {
+      if (ssGet("sc90_kind") === "order") { restoreOrderResult(r); return; }
+      showResult(r);
+      return;
+    }
   }
   showStart();
 }
