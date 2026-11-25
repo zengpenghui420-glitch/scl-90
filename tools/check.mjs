@@ -109,6 +109,129 @@ assert(/CODE_PREFIX:-SC/.test(mint), "mint prefix");
 assert(mint.includes("ABCDEFGHJKMNPQRSTUVWXYZ23456789"), "mint alphabet");
 assert(html.includes("查看上次结果"), "view last");
 assert(html.includes("重新测试"), "retry");
+assert(html.includes('const QUIZ_KEY = "scl"'), "quiz key scl");
+assert(html.includes("https://snappy-tundra-7uesdvk-zengpenghui420-glitch.vercel.app"), "api base");
+assert(html.includes('API_BASE + "/order/redeem"'), "redeem path");
+assert(html.includes('API_BASE + "/order/get?quiz="'), "peek path");
+assert(!/API_BASE\s*\+\s*["']\/redeem["']/.test(html), "legacy vault redeem not used");
+assert(!html.includes("QUIZ_KEY = \"bazi\"") && !html.includes("quiz:\"bazi\"") && !html.includes("quiz:'bazi'"), "not bazi");
+assert(html.includes("输入订单号"), "order title");
+assert(html.includes("我的订单"), "xhs orders");
+assert(html.includes("可以测 3 次"), "three uses");
+assert(!html.includes("验证码"), "page does not advertise codes");
+assert(!html.includes("SCAB23"), "page does not show a sample code");
+assert(/async function redeem\(code\) \{[\s\S]*?mantleGet\(code\)[\s\S]*?mantleAdd\(code, -1\)[\s\S]*?return \{ ok: true, remaining: left, max: data\.max \|\| 3 \};\s*\}/.test(html), "mantle redeem kept");
+assert(/if \(screen === "quiz" && inProgress\(\)\) \{[\s\S]*?return;\s*\}/.test(html), "resume quiz before peek");
+assert(/ssGet\("sc90_kind"\) === "order"\) \{ restoreOrderResult\(r\); return; \}/.test(html), "refresh peeks");
+assert(/async function restoreOrderResult\(r\) \{[\s\S]*?peekOrder\(orderId\)[\s\S]*?showResult\(r\)/.test(html), "restore uses peek");
+assert(!/function restoreOrderResult[\s\S]*?function boot/.test(html) || !/function restoreOrderResult[\s\S]*?redeemOrder\(/.test(html.slice(html.indexOf("async function restoreOrderResult"), html.indexOf("function boot"))), "refresh does not redeem");
+
+const ORDER = "P738291046152837465";
+const normSrc = html.slice(html.indexOf("function normalizeCode(v)"), html.indexOf("function validCode(code)"));
+const orderSrc = html.match(/\/\* ORDER_UNLOCK_START \*\/([\s\S]*?)\/\* ORDER_UNLOCK_END \*\//);
+assert(orderSrc, "order block");
+const orderApi = new Function(
+  "fetch",
+  "localStorage",
+  "crypto",
+  normSrc + "\n" + orderSrc[1] + "\nreturn { normalizeOrderId, orderFormatError, classifyInput, usesOf, decideTimeout, redeemOrder, peekOrder, postRedeem };"
+);
+
+function memStore() {
+  const m = new Map();
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+}
+function jsonRes(status, obj) {
+  return { status: status, async text() { return JSON.stringify(obj); } };
+}
+
+const pure = orderApi(async () => { throw new Error("no network"); }, memStore(), globalThis.crypto);
+assert(pure.normalizeOrderId(" 「p7382 9104-6152.837465」 ") === ORDER, "normalize order");
+assert(pure.normalizeOrderId("Ｐ７３８２９１０４６１５２８３７４６５") === ORDER, "fullwidth order");
+assert(pure.orderFormatError(ORDER) === "", "synthetic order ok");
+assert(pure.orderFormatError("P111111111111111111") === "invalid", "repeating");
+assert(pure.orderFormatError("P121212121212121212") === "invalid", "block repeat");
+assert(pure.orderFormatError("P123456789012345678") === "invalid", "plus one");
+assert(pure.orderFormatError("P987654321098765432") === "invalid", "minus one");
+assert(pure.classifyInput("  " + ORDER + "  ").type === "order", "classify order");
+assert(pure.classifyInput("订单号是" + ORDER).type === "order-invalid", "do not extract");
+assert(pure.classifyInput("P1234567890123").type === "order-invalid", "short order");
+assert(pure.classifyInput("P12345").type === "code", "too-short falls through");
+assert(pure.classifyInput("SCAB23").type === "code" && pure.classifyInput("SCAB23").code === "SCAB23", "legacy shape stays code");
+assert(pure.usesOf({ ok: false, error: "not_found" }) === 0, "uses not_found");
+assert(pure.usesOf({ ok: true, uses: 2 }) === 2, "uses number");
+assert(pure.decideTimeout(0, { ok: true, uses: 1 }) === "accept", "timeout accept increment");
+assert(pure.decideTimeout(1, { ok: true, uses: 1 }) === "retry", "timeout same uses retries");
+assert(pure.decideTimeout(0, { ok: false, error: "not_found" }) === "retry", "timeout missing retries");
+assert(pure.decideTimeout(1, { ok: false, error: "bound_other_quiz" }) === "return", "timeout other quiz");
+assert(pure.decideTimeout(null, null) === "giveup", "timeout no peek");
+
+async function runOrderFlow() {
+  const store = { uses: 0, posts: 0, gets: 0, quizzes: [] };
+  globalThis.__ORDER_RECONCILE_MS = 0;
+  globalThis.__ORDER_TIMEOUT_MS = 80;
+  function orderState() {
+    if (store.uses <= 0) return { status: 404, body: { ok: false, error: "not_found" } };
+    return { status: 200, body: { ok: true, uses: store.uses, remaining: 3 - store.uses, max: 3, quiz: "scl", paidVerified: false } };
+  }
+  const fetchMock = (url, opts) => {
+    const u = String(url);
+    const signal = opts && opts.signal;
+    if (u.includes("/order/get")) {
+      store.gets += 1;
+      const q = new URL(u).searchParams;
+      store.quizzes.push(q.get("quiz"));
+      assert(q.get("orderId") === ORDER, "peek order");
+      const st = orderState();
+      return Promise.resolve(jsonRes(st.status, st.body));
+    }
+    if (u.includes("/order/redeem")) {
+      store.posts += 1;
+      const body = JSON.parse(opts.body);
+      assert(body.quiz === "scl" && body.orderId === ORDER, "redeem body");
+      store.quizzes.push(body.quiz);
+      if (store.hangNext) {
+        store.hangNext = false;
+        store.uses += 1;
+        return new Promise((resolve, reject) => {
+          signal.addEventListener("abort", () => reject(new Error("abort")));
+        });
+      }
+      if (store.uses >= 3) return Promise.resolve(jsonRes(403, { ok: false, error: "exhausted", remaining: 0, max: 3 }));
+      store.uses += 1;
+      return Promise.resolve(jsonRes(200, { ok: true, uses: store.uses, remaining: 3 - store.uses, max: 3, quiz: "scl", paidVerified: false }));
+    }
+    return Promise.reject(new Error("unexpected " + u));
+  };
+  const api = orderApi(fetchMock, memStore(), globalThis.crypto);
+  const first = await api.redeemOrder(ORDER);
+  assert(first.ok && first.remaining === 2 && first.uses === 1, "first unlock remaining " + JSON.stringify(first));
+  assert(store.posts === 1, "first posts " + store.posts);
+  const getsAfterFirst = store.gets;
+  const peek = await api.peekOrder(ORDER);
+  assert(peek.ok && peek.uses === 1 && peek.remaining === 2, "refresh peek");
+  assert(store.posts === 1 && store.gets === getsAfterFirst + 1, "peek does not redeem");
+  const second = await api.redeemOrder(ORDER);
+  assert(second.ok && second.uses === 2 && second.remaining === 1, "retest consumes");
+  assert(store.posts === 2, "retest post");
+  const third = await api.redeemOrder(ORDER);
+  assert(third.ok && third.uses === 3 && third.remaining === 0, "third use");
+  const postsBeforeFourth = store.posts;
+  const fourth = await api.redeemOrder(ORDER);
+  assert(fourth.ok === false && fourth.error === "exhausted", "fourth rejected");
+  assert(store.posts === postsBeforeFourth, "fourth does not post when peek shows empty");
+  assert(store.uses === 3, "uses stay 3");
+  store.uses = 0;
+  store.posts = 0;
+  store.gets = 0;
+  store.hangNext = true;
+  const recovered = await api.redeemOrder(ORDER);
+  assert(recovered.ok && recovered.uses === 1, "timeout accepts counted use");
+  assert(store.posts === 1, "timeout does not redeem twice");
+  assert(store.quizzes.every((q) => q === "scl"), "only scl");
+}
+
+await runOrderFlow();
 
 console.log("ok", {
   items: ITEMS.length,
