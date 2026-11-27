@@ -18,7 +18,7 @@
 python3 -m http.server 8765
 ```
 
-然后打开 <http://127.0.0.1:8765/> 。直接双击 `index.html` 时，订单号接口可能因浏览器限制失败。
+然后打开 <http://127.0.0.1:8765/> 。页面是单文件 `index.html`。
 
 ## 计分
 
@@ -64,9 +64,18 @@ python3 -m http.server 8765
 
 ## 订单号
 
-开始测试、重新测试会把订单号交给 `https://snappy-tundra-7uesdvk-zengpenghui420-glitch.vercel.app` 核销一次（`quiz` 为 `scl`，一笔订单只绑这一套测试，最多 3 次）。确认后才扣次。同一标签页刷新已有结果走 `GET /order/get`，不扣次；「再测一次」才再次 `POST /order/redeem`。
+订单号在页面上核对。只接受 `P` + 18 位。重复块、逐位 ±1 的序列，以及 19 位，都提示「订单号格式不对」，不会开始测试。格式通过后，确认就开始。页面不为订单号请求 `*.vercel.app`，也不读写 Mantle 的 `orders/`。
 
-已经发出的码仍走页面里原来的 Mantle 集合 `sc/`，不改成通用的 `/redeem`。页面上只引导填写订单号。造码仍是：
+| 项 | 值 |
+| --- | --- |
+| 格式 | 只接受 `P` + 18 位。重复块和逐位 ±1 的序列会拒绝，19 位也不接受 |
+| 通过 | 确认后进入测验，没有订单绑定，也没有订单接口限流 |
+| 显示 | 第一次开始提示「验证成功，还可以测 2 次」。重新测试再记一次，依次是「还可以测 1 次」和「这是最后一次」 |
+| 不改显示 | 刷新、继续这一次、查看上次结果、刷新已经打开的结果 |
+| 记满之后 | 同一个订单号仍然可以进入，提示「验证成功」 |
+| 存放 | 按订单号分开记在这台浏览器，键 `sc90_order_uses` |
+
+已经发出的码先 `POST /redeem`（`quiz` 为 `scl`）。vault 没有这枚码时，才回退到原来的 Mantle 集合 `sc/`，按真实剩余次数扣次。vault 明确用尽则不再落到 Mantle。页面上只引导填写订单号。造码仍是：
 
 ```bash
 MANTLE_CREDS=/path/to/mantle.json ./tools/mint.sh 10
@@ -76,12 +85,13 @@ MANTLE_CREDS=/path/to/mantle.json ./tools/mint.sh 10
 
 - 单个 `index.html`，无构建。GitHub Pages 使用 `main` 分支根目录
 - 作答存在 `sessionStorage`，上次结果存在这台设备的 `localStorage`，答题内容不会上传
-- 只在确认开始或重新测试时扣次。订单号走上面的接口；已发出的码仍走原来的 Mantle 集合 `sc/`
+- 只在确认开始或重新测试时记一次显示。订单号不走订单接口；已发出的码先走 vault `POST /redeem`，vault 没有这枚码时才走 Mantle 集合 `sc/`
 
 ## 自测
 
 ```bash
 node tools/check.mjs
+node tools/order-unlock.test.mjs
 ```
 
 ## 说明

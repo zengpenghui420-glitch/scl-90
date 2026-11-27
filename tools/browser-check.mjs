@@ -43,33 +43,31 @@ function json(status, obj) {
 }
 
 const world = {
-  uses: 0,
-  posts: 0,
-  gets: 0,
+  vaultPosts: 0,
+  vaultGets: 0,
   mantleGets: 0,
   mantlePosts: 0,
   remaining: 3,
-  orderUrls: [],
-  mantleUrls: []
+  urls: [],
+  unexpected: [],
+  bodies: []
 };
 
 function resetWorld() {
-  world.uses = 0;
-  world.posts = 0;
-  world.gets = 0;
+  world.vaultPosts = 0;
+  world.vaultGets = 0;
   world.mantleGets = 0;
   world.mantlePosts = 0;
   world.remaining = 3;
-  world.orderUrls = [];
-  world.mantleUrls = [];
+  world.urls = [];
+  world.unexpected = [];
+  world.bodies = [];
 }
 
-function orderBody() {
-  if (world.uses <= 0) return { status: 404, body: { ok: false, error: "not_found" } };
-  return {
-    status: 200,
-    body: { ok: true, uses: world.uses, remaining: 3 - world.uses, max: 3, quiz: "scl", paidVerified: false }
-  };
+function note(req) {
+  const u = req.url();
+  world.urls.push(req.method() + " " + u.split("?")[0]);
+  if (u.includes("/order/") || u.includes("/orders/")) world.unexpected.push(u);
 }
 
 async function handle(req) {
@@ -86,37 +84,36 @@ async function handle(req) {
     });
     return;
   }
-  if (u.includes("/order/get") || u.includes("/order/redeem")) {
-    const parsed = new URL(u);
-    world.orderUrls.push(u);
-    if (req.method() === "GET") {
-      world.gets += 1;
-      assert(parsed.searchParams.get("quiz") === "scl", "peek quiz");
-      const st = orderBody();
-      await req.respond(json(st.status, st.body));
-      return;
-    }
+  if (u.includes("/order/") || u.includes("/orders/")) {
+    note(req);
+    await req.abort();
+    return;
+  }
+  if (u.includes("/redeem") && req.method() === "POST") {
+    note(req);
     const body = JSON.parse(req.postData() || "{}");
-    assert(body.quiz === "scl" && body.orderId === ORDER, "redeem body " + req.postData());
-    world.posts += 1;
-    if (world.uses >= 3) {
-      await req.respond(json(403, { ok: false, error: "exhausted", remaining: 0, max: 3 }));
-      return;
-    }
-    world.uses += 1;
-    await req.respond(json(200, {
-      ok: true,
-      uses: world.uses,
-      remaining: 3 - world.uses,
-      max: 3,
-      quiz: "scl",
-      orderId: ORDER,
-      paidVerified: false
-    }));
+    world.bodies.push(body);
+    world.vaultPosts += 1;
+    assert(body.quiz === "scl" && body.code === CODE && !body.orderId, "vault body " + req.postData());
+    await req.respond(json(404, { ok: false, error: "not_found" }));
+    return;
+  }
+  if (u.includes("/get") && u.includes("quiz=")) {
+    note(req);
+    world.vaultGets += 1;
+    const parsed = new URL(u);
+    assert(parsed.searchParams.get("quiz") === "scl", "vault peek quiz");
+    assert(parsed.searchParams.get("code") === CODE, "vault peek code");
+    await req.respond(json(404, { ok: false, error: "not_found" }));
     return;
   }
   if (u.includes("mantledb.sh")) {
-    world.mantleUrls.push(u.split("?")[0]);
+    note(req);
+    if (u.includes("/orders/")) {
+      world.unexpected.push(u);
+      await req.abort();
+      return;
+    }
     if (req.method() === "GET") {
       world.mantleGets += 1;
       assert(u.includes("/sc/" + CODE), "mantle collection " + u);
@@ -135,6 +132,7 @@ async function handle(req) {
     await req.continue();
     return;
   }
+  world.unexpected.push(u);
   await req.abort();
 }
 
@@ -167,7 +165,11 @@ const base = "http://127.0.0.1:" + server.address().port + "/";
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME || "/usr/bin/google-chrome",
   headless: true,
-  args: ["--no-sandbox", "--disable-dev-shm-usage"]
+  args: [
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--host-resolver-rules=MAP snappy-tundra-7uesdvk-zengpenghui420-glitch.vercel.app 127.0.0.1, MAP mantledb.sh 127.0.0.1"
+  ]
 });
 
 try {
@@ -187,9 +189,8 @@ try {
   assert(await overflow(page), "cover overflow 390");
   await shot(page, "cover-390.png");
 
-  const postsAtCover = world.posts;
   await openModal(page);
-  assert(world.posts === postsAtCover, "opening the dialog redeems");
+  assert(world.unexpected.length === 0 && world.vaultPosts === 0 && world.mantleGets === 0, "opening the dialog called the network");
   assert(await page.$eval("#codeTitle", (el) => el.textContent) === "输入订单号", "modal title");
   assert((await page.$eval("#codeHint", (el) => el.textContent)).includes("我的订单"), "xhs copy");
   assert((await page.$eval("#codeHint", (el) => el.textContent)).includes("3 次"), "three uses");
@@ -219,36 +220,38 @@ try {
   await setCode(page, "P111111111111111111");
   await confirm(page);
   await page.waitForFunction(() => document.getElementById("toast").textContent.includes("格式不对"));
-  assert(world.posts === 0 && world.gets === 0, "invalid order hit the api");
+  assert(world.unexpected.length === 0 && world.vaultPosts === 0 && world.mantleGets === 0, "invalid order hit the network");
   assert(!(await page.$("#quiz.active")), "invalid order started the quiz");
+
+  await setCode(page, "P9900000000000001378");
+  await confirm(page);
+  await page.waitForFunction(() => document.getElementById("toast").textContent.includes("格式不对"));
+  assert(!(await page.$("#quiz.active")), "19-digit order started the quiz");
 
   await setCode(page, ORDER);
   await new Promise((r) => setTimeout(r, 400));
-  assert(world.posts === 0, "preview redeemed");
-  assert(world.gets >= 1, "preview did not peek");
-  const getsBeforeConfirm = world.gets;
+  assert(world.vaultGets === 0 && world.vaultPosts === 0 && world.mantleGets === 0, "order preview called the network");
   await confirm(page);
   await page.waitForSelector("#quiz.active");
-  assert(world.posts === 1 && world.uses === 1, "first unlock posts " + world.posts + " uses " + world.uses);
-  assert(world.gets >= getsBeforeConfirm, "confirm peek");
+  assert(await page.evaluate((id) => shownOrderUses(id), ORDER) === 1, "first display count");
+  assert((await page.$eval("#toast", (el) => el.textContent)).includes("还可以测 2 次"), "first toast");
+  assert(world.unexpected.length === 0 && world.vaultPosts === 0 && world.mantlePosts === 0, "first unlock called the network");
   assert(await page.$eval("#qText", (el) => el.textContent) === "头痛", "first question");
   assert(await overflow(page), "quiz overflow");
   await shot(page, "quiz-390.png");
 
-  const postsMid = world.posts;
-  const getsMid = world.gets;
   await page.click("#btnBack");
   await page.waitForSelector("#start.active");
   assert((await page.$eval("#btnStart", (el) => el.textContent)) === "继续测试", "continue label");
   await page.click("#btnStart");
   await page.waitForSelector("#quiz.active");
-  assert(world.posts === postsMid && world.gets === getsMid, "continue consumed");
+  assert(await page.evaluate((id) => shownOrderUses(id), ORDER) === 1, "continue changed the display");
 
   await page.click("#btnBack");
   await page.waitForSelector("#start.active");
   await page.click("#btnRestart");
   await page.waitForSelector("#codeMask:not([hidden])");
-  assert(world.posts === postsMid, "opening retry redeemed");
+  assert(await page.evaluate((id) => shownOrderUses(id), ORDER) === 1, "opening retry changed the display");
   await page.click("#codeClose");
 
   await page.evaluate(() => {
@@ -260,46 +263,40 @@ try {
   assert(await overflow(page), "result overflow");
   await shot(page, "result-390.png");
 
-  const postsBeforeReload = world.posts;
-  const getsBeforeReload = world.gets;
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForSelector("#result.active", { timeout: 4000 });
-  assert(world.posts === postsBeforeReload, "refresh redeemed");
-  assert(world.gets === getsBeforeReload + 1, "refresh did not peek once: " + world.gets + " vs " + getsBeforeReload);
-  assert(world.uses === 1, "refresh changed uses");
+  assert(await page.evaluate((id) => shownOrderUses(id), ORDER) === 1, "refresh changed the display");
+  assert(world.unexpected.length === 0 && world.vaultPosts === 0 && world.mantleGets === 0, "refresh called the network");
 
   await page.click("#btnHome");
   await page.waitForSelector("#start.active");
-  const postsBeforeLast = world.posts;
-  const getsBeforeLast = world.gets;
   await page.click("#btnLast");
   await page.waitForSelector("#result.active");
-  assert(world.posts === postsBeforeLast && world.gets === getsBeforeLast, "view last consumed");
+  assert(await page.evaluate((id) => shownOrderUses(id), ORDER) === 1, "view last changed the display");
 
-  async function retest() {
-    const posts = world.posts;
+  async function retest(expected, toastPart) {
     await page.click("#btnRetry");
     await page.waitForSelector("#codeMask:not([hidden])");
+    assert(await page.evaluate((id) => shownOrderUses(id), ORDER) === expected - 1, "opening retest changed the display");
     await confirm(page);
     await page.waitForSelector("#quiz.active");
-    assert(world.posts === posts + 1, "retest did not post");
+    assert(await page.evaluate((id) => shownOrderUses(id), ORDER) === expected, "retest display " + expected);
+    assert((await page.$eval("#toast", (el) => el.textContent)).includes(toastPart), "retest toast " + toastPart);
     await page.evaluate(() => {
       window.SCL90.setAnswers(Array(90).fill(1));
       window.SCL90.finish();
     });
     await page.waitForSelector("#result.active", { timeout: 4000 });
   }
-  await retest();
-  assert(world.uses === 2, "second use");
-  await retest();
-  assert(world.uses === 3 && world.posts === 3, "third use");
-  const postsAtEnd = world.posts;
+  await retest(2, "还可以测 1 次");
+  await retest(3, "这是最后一次");
   await page.click("#btnRetry");
   await page.waitForSelector("#codeMask:not([hidden])");
   await confirm(page);
-  await page.waitForFunction(() => document.getElementById("toast").textContent.includes("用完"));
-  assert(!(await page.$("#quiz.active")), "fourth attempt entered the quiz");
-  assert(world.posts === postsAtEnd && world.uses === 3, "fourth posted or incremented");
+  await page.waitForSelector("#quiz.active");
+  await page.waitForFunction(() => document.getElementById("toast").textContent === "验证成功");
+  assert(await page.evaluate((id) => shownOrderUses(id), ORDER) === 4, "later entry display");
+  assert(world.unexpected.length === 0 && world.vaultPosts === 0 && world.mantlePosts === 0, "later entry called the network");
 
   await page.close();
   resetWorld();
@@ -317,18 +314,20 @@ try {
   await openModal(legacy);
   await setCode(legacy, CODE);
   await new Promise((r) => setTimeout(r, 400));
-  assert(world.posts === 0 && world.gets === 0, "legacy preview hit order api");
+  assert(world.unexpected.length === 0, "legacy preview hit an order route");
+  assert(world.vaultGets >= 1 && world.vaultPosts === 0, "legacy preview did not ask the vault");
   assert(world.mantleGets >= 1 && world.mantlePosts === 0, "legacy preview did not read mantle");
   await confirm(legacy);
   await legacy.waitForSelector("#quiz.active");
+  assert(world.vaultPosts === 1 && world.bodies[0].code === CODE && !world.bodies[0].orderId, "legacy confirm missed the vault");
   assert(world.mantlePosts === 1 && world.remaining === 2, "legacy confirm decremented");
-  assert(world.posts === 0 && world.gets === 0, "legacy confirm hit order api");
+  assert(world.unexpected.length === 0, "legacy confirm hit an order route");
   const mantlePosts = world.mantlePosts;
   const mantleGets = world.mantleGets;
+  const vaultPosts = world.vaultPosts;
   await legacy.reload({ waitUntil: "domcontentloaded" });
   await legacy.waitForSelector("#quiz.active");
-  assert(world.mantlePosts === mantlePosts && world.mantleGets === mantleGets, "legacy refresh hit mantle");
-  assert(world.posts === 0, "legacy refresh hit order api");
+  assert(world.mantlePosts === mantlePosts && world.mantleGets === mantleGets && world.vaultPosts === vaultPosts, "legacy refresh hit the network");
   await legacy.evaluate(() => {
     window.SCL90.setAnswers(Array(90).fill(1));
     window.SCL90.finish();
@@ -339,12 +338,12 @@ try {
   await legacy.reload({ waitUntil: "domcontentloaded" });
   await legacy.waitForSelector("#result.active", { timeout: 4000 });
   assert(world.mantleGets === afterFinishGets && world.mantlePosts === afterFinishPosts, "legacy result refresh hit mantle");
-  assert(world.posts === 0 && world.gets === 0, "legacy result refresh hit order api");
+  assert(world.unexpected.length === 0, "legacy result refresh hit an order route");
   await legacy.click("#btnHome");
   await legacy.waitForSelector("#start.active");
   await legacy.click("#btnLast");
   await legacy.waitForSelector("#result.active");
-  assert(world.mantleGets === afterFinishGets && world.posts === 0, "view last hit the network");
+  assert(world.mantleGets === afterFinishGets && world.vaultPosts === 1, "view last hit the network");
   await legacy.close();
   await legacyContext.close();
 
@@ -361,19 +360,20 @@ try {
   });
   await linked.goto(base + "?code=" + ORDER, { waitUntil: "domcontentloaded" });
   assert(await linked.$eval("#urlHint", (el) => !el.hidden), "link hint hidden");
-  assert(world.posts === 0 && world.gets === 0, "link redeemed before confirm");
+  assert(world.vaultPosts === 0 && world.unexpected.length === 0, "link redeemed before confirm");
   await openModal(linked);
   assert(await linked.$eval("#codeInput", (el) => el.value) === ORDER, "link did not fill the order");
   await new Promise((r) => setTimeout(r, 400));
-  assert(world.posts === 0, "link preview redeemed");
+  assert(world.vaultPosts === 0 && world.mantleGets === 0, "link preview called the network");
   await confirm(linked);
   await linked.waitForSelector("#quiz.active");
-  assert(world.posts === 1 && world.uses === 1, "link confirm did not redeem once");
+  assert(await linked.evaluate((id) => shownOrderUses(id), ORDER) === 1, "link confirm display");
+  assert(world.vaultPosts === 0 && world.unexpected.length === 0, "link confirm called an order route");
   await linked.close();
   await linkContext.close();
 
   console.log("browser ok", {
-    orderUses: 3,
+    orderUses: 4,
     shots: fs.readdirSync(outDir)
   });
 } finally {
